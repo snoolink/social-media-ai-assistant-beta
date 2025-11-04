@@ -1,5 +1,6 @@
 # Credentials and Secrets
 creds.json
+creds.py
 credentials.json
 secrets.json
 config.json
