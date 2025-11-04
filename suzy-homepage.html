@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suzy - Your Social Media Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            margin: 0 auto;
+            height: calc(100vh - 20px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .suzy-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            border: 3px solid white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: block;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .setup-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .setup-modal.hidden {
+            display: none;
+        }
+
+        .setup-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .setup-content h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .setup-content p {
+            color: #666;
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            font-size: 1em;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+        }
+
+        .setup-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .setup-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .setup-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .success-message {
+            color: #27ae60;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9ff;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.suzy {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .avatar-small {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message.suzy .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .action-chip {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .action-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .typing-dots {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .input-area {
+            background: white;
+            padding: 15px;
+            border-top: 1px solid #e0e7ff;
+            flex-shrink: 0;
+        }
+
+        .file-upload-section {
+            display: none;
+            background: #f8f9ff;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 2px dashed #667eea;
+        }
+
+        .file-upload-section.active {
+            display: block;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .file-upload-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .file-list {
+            margin-top: 10px;
+            font-size: 0.85em;
+        }
+
+        .file-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .remove-file {
+            color: #e74c3c;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .input-controls {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-controls input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e7ff;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .input-controls input:focus {
+            border-color: #667eea;
+        }
+
+        .icon-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+
+        .attach-btn {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .attach-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .attach-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+                height: 100vh;
+                max-width: 100%;
+            }
+
+            body {
+                padding: 0;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .setup-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Setup Modal -->
+    <div class="setup-modal" id="setupModal">
+        <div class="setup-content">
+            <svg width="80" height="80" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="margin: 0 auto 20px; display: block;">
+                <circle cx="100" cy="100" r="80" fill="#FFD4A3"/>
+                <path d="M 40 90 Q 40 40 100 40 Q 160 40 160 90 L 160 120 Q 160 100 150 100 Q 140 100 140 110 L 140 140 L 60 140 L 60 110 Q 60 100 50 100 Q 40 100 40 110 Z" fill="#3D2817"/>
+                <circle cx="75" cy="90" r="6" fill="#2C1810"/>
+                <circle cx="125" cy="90" r="6" fill="#2C1810"/>
+                <path d="M 75 120 Q 100 135 125 120" stroke="#E67E22" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </svg>
+            <h2>Hi! I'm Suzy 👋</h2>
+            <p>Before we get started, I'll need your Instagram credentials to help manage your social media. Don't worry, they're stored securely!</p>
+            
+            <form id="setupForm" onsubmit="saveCredentials(event)">
+                <div class="form-group">
+                    <label for="username">Instagram Username</label>
+                    <input type="text" id="username" name="username" required placeholder="your_username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Instagram Password</label>
+                    <input type="password" id="password" name="password" required placeholder="••••••••">
+                </div>
+                
+                <button type="submit" class="setup-btn" id="setupBtn">Let's Get Started! 🚀</button>
+                <div id="setupMessage"></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <svg class="suzy-avatar" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="80" fill="#FFD4A3"/>
+                <path d="M 40 90 Q 40 40 100 40 Q 160 40 160 90 L 160 120 Q 160 100 150 100 Q 140 100 140 110 L 140 140 L 130 140 L 130 110 Q 130 100 120 100 Q 110 100 110 110 L 110 140 L 100 140 L 100 110 Q 100 100 90 100 Q 80 100 80 110 L 80 140 L 70 140 L 70 110 Q 70 100 60 100 Q 50 100 50 110 L 50 120 Z" fill="#3D2817"/>
+                <ellipse cx="75" cy="90" rx="8" ry="12" fill="#2C1810"/>
+                <ellipse cx="125" cy="90" rx="8" ry="12" fill="#2C1810"/>
+                <circle cx="76" cy="87" r="3" fill="white"/>
+                <circle cx="126" cy="87" r="3" fill="white"/>
+                <path d="M 65 75 Q 75 72 85 75" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <path d="M 115 75 Q 125 72 135 75" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <ellipse cx="100" cy="105" rx="6" ry="8" fill="#FFBE8A"/>
+                <path d="M 75 120 Q 100 135 125 120" stroke="#E67E22" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <ellipse cx="60" cy="105" rx="12" ry="8" fill="#FFB6C1" opacity="0.4"/>
+                <ellipse cx="140" cy="105" rx="12" ry="8" fill="#FFB6C1" opacity="0.4"/>
+            </svg>
+            <h1>Suzy 🌟</h1>
+            <p>Your Social Media Assistant</p>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="message suzy">
+                <svg class="avatar-small" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="100" cy="100" r="80" fill="#FFD4A3"/>
+                    <path d="M 40 90 Q 40 40 100 40 Q 160 40 160 90 L 160 120 Q 160 100 150 100 Q 140 100 140 110 L 140 140 L 60 140 L 60 110 Q 60 100 50 100 Q 40 100 40 110 Z" fill="#3D2817"/>
+                    <circle cx="75" cy="90" r="6" fill="#2C1810"/>
+                    <circle cx="125" cy="90" r="6" fill="#2C1810"/>
+                    <path d="M 75 120 Q 100 135 125 120" stroke="#E67E22" stroke-width="3" fill="none" stroke-linecap="round"/>
+                </svg>
+                <div>
+                    <div class="message-content">
+                        Hey there! 👋 I'm Suzy, and I'm so excited to help you with your social media! What would you like to do today?
+                    </div>
+                    <div class="quick-actions">
+                        <button class="action-chip" onclick="quickAction('schedule')">📅 Schedule Post</button>
+                        <button class="action-chip" onclick="quickAction('analyze')">📊 Analyze Stats</button>
+                        <button class="action-chip" onclick="quickAction('ideas')">💡 Content Ideas</button>
+                        <button class="action-chip" onclick="quickAction('hashtags')">🏷️ Hashtags</button>
+                        <button class="action-chip" onclick="quickAction('upload')">📁 Upload CSV</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <svg class="avatar-small" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="100" cy="100" r="80" fill="#FFD4A3"/>
+                    <path d="M 40 90 Q 40 40 100 40 Q 160 40 160 90 L 160 120 Q 160 100 150 100 Q 140 100 140 110 L 140 140 L 60 140 L 60 110 Q 60 100 50 100 Q 40 100 40 110 Z" fill="#3D2817"/>
+                    <circle cx="75" cy="90" r="6" fill="#2C1810"/>
+                    <circle cx="125" cy="90" r="6" fill="#2C1810"/>
+                    <path d="M 75 120 Q 100 135 125 120" stroke="#E67E22" stroke-width="3" fill="none" stroke-linecap="round"/>
+                </svg>
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="file-upload-section" id="fileUploadSection">
+                <div class="file-input-wrapper">
+                    <label for="fileInput" class="file-upload-btn">
+                        📎 Choose CSV File(s)
+                    </label>
+                    <input type="file" id="fileInput" accept=".csv" multiple onchange="handleFileSelect(event)">
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <div class="input-controls">
+                <button class="icon-btn attach-btn" id="attachBtn" onclick="toggleFileUpload()" title="Attach CSV">
+                    📎
+                </button>
+                <input type="text" id="userInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button class="icon-btn send-btn" onclick="sendMessage()" id="sendBtn">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5050/api';
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const fileUploadSection = document.getElementById('fileUploadSection');
+        const attachBtn = document.getElementById('attachBtn');
+        const fileList = document.getElementById('fileList');
+        const setupModal = document.getElementById('setupModal');
+        let uploadedFiles = [];
+        let isSetupComplete = false;
+
+        const avatarSVG = `<svg class="avatar-small" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="80" fill="#FFD4A3"/>
+            <path d="M 40 90 Q 40 40 100 40 Q 160 40 160 90 L 160 120 Q 160 100 150 100 Q 140 100 140 110 L 140 140 L 60 140 L 60 110 Q 60 100 50 100 Q 40 100 40 110 Z" fill="#3D2817"/>
+            <circle cx="75" cy="90" r="6" fill="#2C1810"/>
+            <circle cx="125" cy="90" r="6" fill="#2C1810"/>
+            <path d="M 75 120 Q 100 135 125 120" stroke="#E67E22" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>`;
+
+        // Check if credentials exist on load
+        window.addEventListener('DOMContentLoaded', async function() {
+            await checkCredentials();
+        });
+
+        async function checkCredentials() {
+            console.log('Checking credentials...');
+            try {
+                const response = await fetch(`${API_URL}/check-credentials`);
+                const data = await response.json();
+                
+                console.log('Credentials check result:', data);
+                
+                if (data.exists) {
+                    setupModal.classList.add('hidden');
+                    isSetupComplete = true;
+                    console.log('Credentials found! Setup complete.');
+                } else {
+                    setupModal.classList.remove('hidden');
+                    isSetupComplete = false;
+                    console.log('No credentials found. Showing setup modal.');
+                }
+            } catch (error) {
+                console.error('Error checking credentials:', error);
+                // Show modal if can't connect to backend
+                setupModal.classList.remove('hidden');
+                isSetupComplete = false;
+                
+                // Show connection error in the modal
+                const setupMessage = document.getElementById('setupMessage');
+                setupMessage.innerHTML = '<p class="error-message">⚠️ Cannot connect to backend. Make sure server is running on port 5050.</p>';
+            }
+        }
+
+        async function saveCredentials(event) {
+            event.preventDefault();
+            
+            const setupBtn = document.getElementById('setupBtn');
+            const setupMessage = document.getElementById('setupMessage');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            // Validation
+            if (!username || !password) {
+                setupMessage.innerHTML = '<p class="error-message">❌ Please enter both username and password</p>';
+                return;
+            }
+
+            setupBtn.disabled = true;
+            setupBtn.textContent = 'Saving...';
+            setupMessage.innerHTML = '';
+
+            console.log('Saving credentials for:', username);
+
+            try {
+                const response = await fetch(`${API_URL}/save-credentials`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Save credentials response:', data);
+
+                if (response.ok) {
+                    setupMessage.innerHTML = '<p class="success-message">✅ Credentials saved successfully!</p>';
+                    isSetupComplete = true;
+                    
+                    setTimeout(() => {
+                        setupModal.classList.add('hidden');
+                        addMessage("Perfect! Your credentials are all set. I'm ready to help you manage your Instagram! 🎉", 'suzy');
+                    }, 1500);
+                } else {
+                    setupMessage.innerHTML = `<p class="error-message">❌ ${data.error || 'Failed to save credentials'}</p>`;
+                    setupBtn.disabled = false;
+                    setupBtn.textContent = "Let's Get Started! 🚀";
+                }
+            } catch (error) {
+                console.error('Error saving credentials:', error);
+                setupMessage.innerHTML = '<p class="error-message">❌ Could not connect to server. Make sure the backend is running on port 5050.</p>';
+                setupBtn.disabled = false;
+                setupBtn.textContent = "Let's Get Started! 🚀";
+            }
+        }
+
+        function toggleFileUpload() {
+            fileUploadSection.classList.toggle('active');
+            attachBtn.classList.toggle('active');
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            uploadedFiles = [...uploadedFiles, ...files];
+            displayFiles();
+        }
+
+        function displayFiles() {
+            fileList.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span>📄 ${file.name}</span>
+                    <span class="remove-file" onclick="removeFile(${index})">✕</span>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            displayFiles();
+        }
+
+        function addMessage(text, sender, includeActions = false) {
+            const message = document.createElement('div');
+            message.className = `message ${sender}`;
+
+            if (sender === 'suzy') {
+                message.innerHTML = `
+                    ${avatarSVG}
+                    <div>
+                        <div class="message-content">${text}</div>
+                        ${includeActions ? '<div class="quick-actions" id="actions-' + Date.now() + '"></div>' : ''}
+                    </div>
+                `;
+            } else {
+                message.innerHTML = `<div class="message-content">${text}</div>`;
+            }
+
+            chatContainer.insertBefore(message, typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return message;
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            const hasFiles = uploadedFiles.length > 0;
+
+            if (!message && !hasFiles) return;
+
+            if (message) {
+                addMessage(message, 'user');
+            }
+
+            if (hasFiles) {
+                const fileNames = uploadedFiles.map(f => f.name).join(', ');
+                addMessage(`📎 Uploaded: ${fileNames}`, 'user');
+            }
+
+            userInput.value = '';
+            showTyping();
+
+            try {
+                // Send message to backend
+                const formData = new FormData();
+                formData.append('message', message);
+                
+                if (hasFiles) {
+                    uploadedFiles.forEach(file => {
+                        formData.append('files', file);
+                    });
+                }
+
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                hideTyping();
+                addMessage(data.response || "I processed your request! 🎉", 'suzy');
+
+                if (hasFiles) {
+                    uploadedFiles = [];
+                    displayFiles();
+                    fileUploadSection.classList.remove('active');
+                    attachBtn.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                hideTyping();
+                addMessage("Oops! I'm having trouble connecting to the server. Make sure the backend is running! 😅", 'suzy');
+            }
+        }
+
+        function quickAction(action) {
+            const actions = {
+                'schedule': 'I want to schedule a post',
+                'analyze': 'Show me my social media analytics',
+                'ideas': 'Give me some content ideas',
+                'hashtags': 'Generate hashtags for my post',
+                'upload': ''
+            };
+            
+            if (action === 'upload') {
+                toggleFileUpload();
+            } else {
+                userInput.value = actions[action];
+                sendMessage();
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>
