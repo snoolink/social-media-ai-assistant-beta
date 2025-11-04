@@ -18,6 +18,7 @@ token.json
 service-account.json
 
 # CSV files with personal information
+*.csv
 *_personal.csv
 *_pii.csv
 *_confidential.csv
