@@ -25,12 +25,12 @@ Below is a high-level overview of the suzy architecture:
 
 ```mermaid
 flowchart TD
-    A[📸 Media Storage (Local / Cloud)] --> B[🧠 Vision AI Engine]
-    B --> C[🔍 Search & Index Layer]
-    C --> D[🎨 Content Curation & Filtering]
-    D --> E[📱 Social Automation Module]
-    E --> F[📊 Insights Dashboard]
-    F --> G[👤 User Interface (Web / Desktop App)]
+    A[Media Storage (Local / Cloud)] --> B[Vision AI Engine]
+    B --> C[Search & Index Layer]
+    C --> D[Content Curation & Filtering]
+    D --> E[Social Automation Module]
+    E --> F[Insights Dashboard]
+    F --> G[User Interface (Web / Desktop App)]
     E -->|API| H[(Instagram / TikTok / YouTube)]
 ```
 
