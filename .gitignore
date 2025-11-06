@@ -136,3 +136,12 @@ docker-compose.override.yml
 id_rsa
 id_rsa.pub
 *.ppk
+
+#image files
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+*.bmp
+*.heic
