@@ -2,6 +2,7 @@ import os
 import shutil
 import random
 import json
+import time
 from pathlib import Path
 from datetime import datetime
 import streamlit as st
@@ -16,6 +17,8 @@ from query_expander import expand_query_with_cache
 # CONFIG  /Users/jay/Desktop/miss-you-india /Users/jay/Downloads/fall-2025
 # -------------------------
 MODEL_NAME = "gemini-2.0-flash-exp"
+MAX_RETRIES_PER_KEY = 2  # Retries before switching API key
+ROTATION_INTERVAL = 10  # Rotate key every N images as preventive measure
 
 # Optional: HEIC support 
 try: 
@@ -75,30 +78,69 @@ st.markdown("""
         border-left: 4px solid #4CAF50;
         margin: 10px 0;
     }
+    .api-key-info {
+        background-color: #fff3cd;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 3px solid #ffc107;
+        margin: 10px 0;
+        font-size: 0.9em;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------
+# API KEY MANAGEMENT
+# -------------------------
+class APIKeyManager:
+    def __init__(self):
+        self.creds_file = Path(__file__).parent / "creds.json"
+        self.all_keys = []
+        self.current_key_index = 0
+        self.used_keys = set()
+        self.load_keys()
+    
+    def load_keys(self):
+        """Load all API keys from creds.json"""
+        if not self.creds_file.exists():
+            raise FileNotFoundError("creds.json not found in script directory.")
+        
+        try:
+            with open(self.creds_file, 'r') as f:
+                creds = json.load(f)
+            self.all_keys = creds.get("api_keys", [])
+            if not self.all_keys:
+                raise ValueError("No API keys found in creds.json")
+            random.shuffle(self.all_keys)  # Randomize order
+        except Exception as e:
+            raise Exception(f"Error reading creds.json: {e}")
+    
+    def get_random_key(self):
+        """Get a random API key that hasn't been used recently"""
+        if len(self.used_keys) >= len(self.all_keys):
+            # All keys have been used, reset
+            self.used_keys.clear()
+        
+        available_keys = [k for k in self.all_keys if k not in self.used_keys]
+        if not available_keys:
+            available_keys = self.all_keys
+        
+        key = random.choice(available_keys)
+        self.used_keys.add(key)
+        return key
+    
+    def get_next_key(self):
+        """Get next API key in rotation"""
+        self.current_key_index = (self.current_key_index + 1) % len(self.all_keys)
+        return self.all_keys[self.current_key_index]
+    
+    def get_key_count(self):
+        """Return total number of available keys"""
+        return len(self.all_keys)
+
+# -------------------------
 # HELPER FUNCTIONS
 # -------------------------
-def load_api_key():
-    """Load a random API key from creds.json"""
-    creds_file = Path(__file__).parent / "creds.json"
-    if not creds_file.exists():
-        st.error("creds.json not found in script directory.")
-        return None
-    try:
-        with open(creds_file, 'r') as f:
-            creds = json.load(f)
-        api_keys = creds.get("api_keys", [])
-        if not api_keys:
-            st.error("No API keys found in creds.json")
-            return None
-        return random.choice(api_keys)
-    except Exception as e:
-        st.error(f"Error reading creds.json: {e}")
-        return None
-
 def get_mime_type(image_path):
     ext = Path(image_path).suffix.lower()
     return {
@@ -110,20 +152,51 @@ def get_mime_type(image_path):
 def is_image_file(filename):
     return Path(filename).suffix.lower() in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic'}
 
-def analyze_image(image_path, client, expanded_query=""):
-    """Return True if image matches the query, False otherwise"""
-    try:
-        from io import BytesIO
-        with Image.open(image_path) as img:
-            img_rgb = img.convert("RGB")
-            buf = BytesIO()
-            img_rgb.save(buf, format='JPEG')
-            image_bytes = buf.getvalue()
+def is_rate_limit_error(error_msg):
+    """Check if error is due to rate limiting"""
+    rate_limit_indicators = [
+        'rate limit',
+        'quota',
+        'too many requests',
+        '429',
+        'resource exhausted',
+        'limit exceeded'
+    ]
+    error_str = str(error_msg).lower()
+    return any(indicator in error_str for indicator in rate_limit_indicators)
 
-        mime_type = get_mime_type(image_path)
-        image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+def analyze_image_with_retry(image_path, api_key_manager, expanded_query, status_placeholder=None):
+    """
+    Analyze image with automatic API key rotation on rate limit errors.
+    Returns: (is_match, explanation, api_key_used)
+    """
+    max_attempts = min(3, api_key_manager.get_key_count())  # Try up to 3 different keys
+    
+    for attempt in range(max_attempts):
+        try:
+            # Get a fresh API key for this attempt
+            if attempt == 0:
+                api_key = api_key_manager.get_random_key()
+            else:
+                api_key = api_key_manager.get_next_key()
+                if status_placeholder:
+                    status_placeholder.warning(f"⚠️ Switching to different API key (attempt {attempt + 1}/{max_attempts})")
+                time.sleep(1)  # Brief pause before retry
+            
+            client = genai.Client(api_key=api_key)
+            
+            # Analyze the image
+            from io import BytesIO
+            with Image.open(image_path) as img:
+                img_rgb = img.convert("RGB")
+                buf = BytesIO()
+                img_rgb.save(buf, format='JPEG')
+                image_bytes = buf.getvalue()
 
-        prompt = f"""Analyze this image carefully and determine if it matches the following description:
+            mime_type = get_mime_type(image_path)
+            image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+
+            prompt = f"""Analyze this image carefully and determine if it matches the following description:
 
 "{expanded_query}"
 
@@ -132,16 +205,31 @@ Important instructions:
 - Ignore irrelevant background details
 - Consider all the criteria mentioned in the description
 - Answer ONLY "Yes" or "No", followed by a brief explanation of why it matches or doesn't match"""
+            
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=[prompt, image_part]
+            )
+            text = response.text.strip()
+            is_match = text.lower().startswith("yes")
+            
+            return is_match, text, api_key
         
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=[prompt, image_part]
-        )
-        text = response.text.strip()
-        is_match = text.lower().startswith("yes")
-        return is_match, text
-    except Exception as e:
-        return False, str(e)
+        except Exception as e:
+            error_msg = str(e)
+            
+            if is_rate_limit_error(error_msg):
+                if attempt < max_attempts - 1:
+                    if status_placeholder:
+                        status_placeholder.warning(f"🔄 Rate limit hit, switching API key...")
+                    continue
+                else:
+                    return False, f"Rate limit error after trying {max_attempts} keys: {error_msg}", None
+            else:
+                # Non-rate-limit error, return immediately
+                return False, f"Error: {error_msg}", None
+    
+    return False, "Failed after all retry attempts", None
 
 # -------------------------
 # STREAMLIT UI
@@ -152,21 +240,27 @@ st.write("""
 Search images using natural language. Your query will be automatically expanded into a detailed description for better accuracy.
 """)
 
-# Sidebar: input/output folders and API key
+# Initialize API Key Manager
+try:
+    if 'api_key_manager' not in st.session_state:
+        st.session_state.api_key_manager = APIKeyManager()
+    api_key_manager = st.session_state.api_key_manager
+except Exception as e:
+    st.error(f"Failed to initialize API keys: {e}")
+    st.stop()
+
+# Sidebar: input/output folders
 input_folder = st.sidebar.text_input("Input Folder Path", value="./images")
 output_base = st.sidebar.text_input("Output Base Folder", value="./selected_images")
-st.sidebar.markdown("### API Key")
-api_key = st.sidebar.text_input("Paste your Gemini API key here (or leave blank to pick randomly)", type="password")
 
-if not api_key:
-    api_key = load_api_key()
-    if api_key:
-        st.sidebar.success("Using a random API key from creds.json")
-    else:
-        st.sidebar.warning("No API key available. Please enter one.")
-        st.stop()
+st.sidebar.markdown("### API Key Info")
+st.sidebar.info(f"🔑 {api_key_manager.get_key_count()} API keys loaded from creds.json")
+st.sidebar.caption("Keys will automatically rotate to avoid rate limits")
 
-client = genai.Client(api_key=api_key)
+# Manual API key override (optional)
+manual_key = st.sidebar.text_input("Override with manual API key (optional)", type="password")
+if manual_key:
+    st.sidebar.warning("⚠️ Using manual key - auto-rotation disabled")
 
 # Initialize session state
 if "detected_images" not in st.session_state:
@@ -196,7 +290,8 @@ with col2:
 # Preview expansion without running search
 if preview_expansion and search_query:
     with st.spinner("Expanding your query..."):
-        expanded = expand_query_with_cache(search_query, api_key)
+        preview_key = manual_key if manual_key else api_key_manager.get_random_key()
+        expanded = expand_query_with_cache(search_query, preview_key)
         st.markdown("#### 📝 Expanded Query:")
         st.markdown(f'<div class="expanded-query">{expanded}</div>', unsafe_allow_html=True)
 
@@ -213,27 +308,74 @@ if run_search and search_query:
     
     # Expand the query first
     with st.spinner("🔄 Expanding your query for better search accuracy..."):
-        expanded_query = expand_query_with_cache(search_query, api_key)
+        expand_key = manual_key if manual_key else api_key_manager.get_random_key()
+        expanded_query = expand_query_with_cache(search_query, expand_key)
         st.session_state.expanded_query = expanded_query
     
     # Show the expanded query
     st.markdown("#### 📝 Search Using Expanded Description:")
     st.markdown(f'<div class="expanded-query">{expanded_query}</div>', unsafe_allow_html=True)
     
-    st.info(f"Found {len(all_images)} images. Running AI analysis...")
+    st.info(f"Found {len(all_images)} images. Running AI analysis with automatic key rotation...")
 
     detected_images = []
     progress_bar = st.progress(0)
     status_text = st.empty()
+    key_rotation_info = st.empty()
 
+    images_processed_with_current_key = 0
+    
     for i, img_path in enumerate(all_images):
+        # Rotate key preventively every N images
+        if not manual_key and images_processed_with_current_key >= ROTATION_INTERVAL:
+            key_rotation_info.markdown(
+                f'<div class="api-key-info">🔄 Preventively rotating API key after {ROTATION_INTERVAL} images</div>', 
+                unsafe_allow_html=True
+            )
+            images_processed_with_current_key = 0
+            time.sleep(0.5)
+            key_rotation_info.empty()
+        
         status_text.text(f"Analyzing: {img_path.name} ({i+1}/{len(all_images)})")
-        is_match, explanation = analyze_image(img_path, client, expanded_query)
+        
+        if manual_key:
+            # Use manual key without rotation
+            client = genai.Client(api_key=manual_key)
+            from io import BytesIO
+            with Image.open(img_path) as img:
+                img_rgb = img.convert("RGB")
+                buf = BytesIO()
+                img_rgb.save(buf, format='JPEG')
+                image_bytes = buf.getvalue()
+            mime_type = get_mime_type(img_path)
+            image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            prompt = f"""Analyze this image carefully and determine if it matches the following description:
+"{expanded_query}"
+Important instructions:
+- Focus on the main subject of the image
+- Ignore irrelevant background details
+- Consider all the criteria mentioned in the description
+- Answer ONLY "Yes" or "No", followed by a brief explanation of why it matches or doesn't match"""
+            try:
+                response = client.models.generate_content(model=MODEL_NAME, contents=[prompt, image_part])
+                text = response.text.strip()
+                is_match = text.lower().startswith("yes")
+            except Exception as e:
+                is_match, text = False, str(e)
+        else:
+            # Use automatic key rotation
+            is_match, text, key_used = analyze_image_with_retry(
+                img_path, api_key_manager, expanded_query, status_text
+            )
+            images_processed_with_current_key += 1
+        
         if is_match:
-            detected_images.append((img_path, explanation))
+            detected_images.append((img_path, text))
+        
         progress_bar.progress((i + 1) / len(all_images))
 
     status_text.empty()
+    key_rotation_info.empty()
     st.success(f"✅ Analysis complete! {len(detected_images)} images matched your query.")
     
     # Store results in session state

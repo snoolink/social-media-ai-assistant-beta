@@ -35,7 +35,7 @@ Given a SHORT user query about what they want to find in photos, expand it into 
 User Query: "{query}"
 
 Your expanded description should:
-1. **Be specific and detailed** - Include exact visual characteristics
+1. **Be specific and detailed** - Include exact visual characterisstics
 2. **Define what TO include** - Clearly describe what should be present
 3. **Define what to EXCLUDE** - List similar things that should NOT match
 4. **Cover edge cases** - Handle ambiguous scenarios
