@@ -1,0 +1,2 @@
+we are currently using the experimental model of gemini 3.0 flash which is great but I need to figure out the rate limit thing if we are running into it.
+

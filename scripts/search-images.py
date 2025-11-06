@@ -72,7 +72,7 @@ def get_mime_type(image_path):
 
 def is_image_file(filename):
     """Check if file is an image based on extension"""
-    image_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'}
+    image_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic'}
     return Path(filename).suffix.lower() in image_extensions
 
 def analyze_image(image_path, client):
@@ -93,15 +93,10 @@ def analyze_image(image_path, client):
             mime_type=mime_type
         )
         
-        # Generate content
-        prompt = """Analyze this image carefully. Determine if the person is wearing a SHIRT (not a t-shirt, tank top, or sleeveless garment) AND is actively rolling up the sleeves or has rolled-up sleeves.
-
-Requirements for "Yes":
-- Must be wearing a shirt with full-length sleeves (like a dress shirt, button-up shirt, or long-sleeve shirt)
-- The sleeves must be rolled up past the wrist, showing the forearm
-- T-shirts, polo shirts, short-sleeve shirts, tank tops, or sleeveless garments do NOT count
-
-Answer with ONLY 'Yes' or 'No', followed by a brief explanation of what type of garment you see and the sleeve status."""
+        # Generate content 
+        prompt = """Find images of a person wearing a black long-sleeve shirt (e.g., dress shirt or button-up). The sleeves must be rolled up past the wrist and the forearms visible. Exclude t-shirts, polos, short-sleeve shirts, tank tops, and sleeveless garments.
+Answer ONLY "Yes" or "No", followed by a brief explanation.
+"""
 
         response = client.models.generate_content(
             model="gemini-2.0-flash-exp",
