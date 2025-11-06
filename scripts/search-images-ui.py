@@ -10,12 +10,12 @@ from google import genai
 from google.genai import types
 
 # -------------------------
-# CONFIG  
+# CONFIG  /Users/jay/Desktop/miss-you-india /Users/jay/Downloads/fall-2025
 # -------------------------
 MODEL_NAME = "gemini-2.0-flash-exp"
 
-# Optional: HEIC support
-try:
+# Optional: HEIC support 
+try: 
     from pillow_heif import register_heif_opener
     register_heif_opener()
 except ImportError:
@@ -45,7 +45,7 @@ def load_api_key():
 def get_mime_type(image_path):
     ext = Path(image_path).suffix.lower()
     return {
-        '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.png':'image/png',
+        '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.png':'image/png', 
         '.webp':'image/webp', '.gif':'image/gif', '.bmp':'image/bmp', 
         '.heic':'image/heic'
     }.get(ext, 'image/jpeg')
