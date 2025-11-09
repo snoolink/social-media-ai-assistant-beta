@@ -11,7 +11,7 @@ from google import genai
 from google.genai import types
 
 # Import the query expander
-from query_expander import expand_query_with_cache
+from scripts.query_expander import expand_query_with_cache
 
 # -------------------------
 # CONFIG  /Users/jay/Desktop/miss-you-india /Users/jay/Downloads/fall-2025
