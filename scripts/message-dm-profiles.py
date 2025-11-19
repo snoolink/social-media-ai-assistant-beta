@@ -188,9 +188,76 @@ def scrape_first_name(driver, wait_time=10):
         return None
 
 
+def check_and_follow_if_needed(driver, username, wait_time=10):
+    """
+    Check if the profile is already followed. If not, follow them.
+    Returns True if followed (or already following), False if failed
+    """
+    wait = WebDriverWait(driver, wait_time)
+    
+    try:
+        # Look for Follow button - if it exists, we're not following them yet
+        follow_button_xpaths = [
+            "//button//div[text()='Follow']",
+            "//button[contains(text(), 'Follow') and not(contains(text(), 'Following'))]",
+            "//div[text()='Follow']/ancestor::button",
+            "//button[@type='button']//div[text()='Follow']"
+        ]
+        
+        follow_btn = None
+        for xpath in follow_button_xpaths:
+            try:
+                follow_btn = driver.find_element(By.XPATH, xpath)
+                if follow_btn and follow_btn.is_displayed():
+                    break
+            except:
+                continue
+        
+        if follow_btn:
+            print(f"🔍 Not following {username} yet - clicking Follow button...")
+            
+            # Scroll to button and click
+            driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", follow_btn)
+            time.sleep(random.uniform(0.8, 1.5))
+            
+            try:
+                follow_btn.click()
+            except:
+                driver.execute_script("arguments[0].click();", follow_btn)
+            
+            print(f"✅ Successfully followed {username}")
+            
+            # Wait a bit after following before proceeding to message
+            time.sleep(random.uniform(2, 4))
+            return True
+        else:
+            # Check if we're already following
+            following_indicators = [
+                "//button//div[text()='Following']",
+                "//button//div[text()='Requested']",
+                "//button//div[text()='Message']"  # If Message button exists, we're likely following
+            ]
+            
+            for xpath in following_indicators:
+                try:
+                    indicator = driver.find_element(By.XPATH, xpath)
+                    if indicator:
+                        print(f"✓ Already following {username}")
+                        return True
+                except:
+                    continue
+            
+            print(f"⚠️  Could not determine follow status for {username}")
+            return True  # Proceed anyway
+            
+    except Exception as e:
+        print(f"⚠️  Error checking follow status for {username}: {e}")
+        return True  # Proceed anyway
+
+
 def send_dm(driver, profile_url, username, message, wait_time=15):
     """
-    Visit profile, scrape first name, click Message button, and send DM
+    Visit profile, follow if needed, scrape first name, click Message button, and send DM
     """
     wait = WebDriverWait(driver, wait_time)
     
@@ -204,6 +271,15 @@ def send_dm(driver, profile_url, username, message, wait_time=15):
     # Human-like wait
     wait_time_human = random.uniform(3, 6)
     time.sleep(wait_time_human)
+
+    # Check if we need to follow them first
+    follow_success = check_and_follow_if_needed(driver, username)
+    
+    if not follow_success:
+        print(f"⚠️  Could not follow {username}, but will try to message anyway")
+    
+    # Small wait after follow check
+    time.sleep(random.uniform(1, 2))
 
     # Scrape the first name from profile
     first_name = scrape_first_name(driver)
@@ -358,6 +434,9 @@ def main():
         
         if 'first_name' not in df.columns:
             df['first_name'] = ''
+        
+        if 'followed' not in df.columns:
+            df['followed'] = False
 
         if "url" not in df.columns:
             raise ValueError("CSV must contain a column named 'url'.")
@@ -408,9 +487,11 @@ def main():
                 df.loc[idx, 'dm_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 df.loc[idx, 'dm_status'] = 'success'
                 df.loc[idx, 'first_name'] = scraped_name if scraped_name else username
+                df.loc[idx, 'followed'] = True  # Mark as followed since we followed before messaging
             else:
                 df.loc[idx, 'dm_status'] = 'failed'
                 df.loc[idx, 'first_name'] = scraped_name if scraped_name else ''
+                # Don't mark as followed if DM failed
             
             # Save progress after each attempt
             df.to_csv(CSV_FILE, index=False)
