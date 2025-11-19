@@ -20,6 +20,7 @@ service-account.json
 
 # CSV files with personal information
 *.csv
+*.numbers
 *_personal.csv
 *_pii.csv
 *_confidential.csv
