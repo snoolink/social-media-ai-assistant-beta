@@ -10,9 +10,8 @@ from PIL import Image
 from google import genai
 from google.genai import types
 
-# Import the query expander and cache system
-from query_expander import expand_query_with_cache
-from image_cache import ImageAnalysisCache
+# Import the query expander
+from scripts.query_expander import expand_query_with_cache
 
 # -------------------------
 # CONFIG  /Users/jay/Desktop/miss-you-india /Users/jay/Downloads/fall-2025
@@ -447,5 +446,3 @@ if st.session_state.detected_images:
             # Show explanation in expander
             with st.expander("🤖 AI Analysis"):
                 st.caption(explanation)
-
-                

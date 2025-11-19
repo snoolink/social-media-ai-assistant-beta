@@ -10,17 +10,18 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium_stealth import stealth
 from webdriver_manager.chrome import ChromeDriverManager
 import random
+from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
-# Now use these variables anywhere below
-print("Logging in as:", INSTAGRAM_USERNAME)
 # ======== CONFIGURATION ========
-# INSTAGRAM_USERNAME = "snook@gmail.com"
-# INSTAGRAM_PASSWORD = "Alink"
 CSV_FILE = "profiles-data/unfollow_list.csv"  # Must contain column 'url'
-DELAY_BETWEEN_ACTIONS = 5  # seconds
+DAILY_LIMIT = 75  # Maximum unfollows per day
+BREAK_AFTER = 13  # Take a break after this many unfollows
+MIN_BREAK_TIME = 60  # Minimum break time in seconds (1 minute)
+MAX_BREAK_TIME = 2700  # Maximum break time in seconds (45 minutes)
+MIN_WAIT_BETWEEN_PROFILES = 0  # Minimum wait between profiles
+MAX_WAIT_BETWEEN_PROFILES = 30  # Maximum wait between profiles
 # ===============================
-
 
 def setup_driver():
     chrome_options = Options()
@@ -31,13 +32,22 @@ def setup_driver():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    # Optional headless mode for background operation:
-    # chrome_options.add_argument("--headless=new")
+    
+    # Additional stealth options
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    
+    # Set a realistic user agent
+    chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
     driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()),
         options=chrome_options
     )
+
+    # Remove webdriver property
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
     # --- Stealth mode setup ---
     stealth(
@@ -58,23 +68,38 @@ def login_instagram(driver):
     wait = WebDriverWait(driver, 15)
 
     print("🔐 Logging into Instagram...")
+    
+    # Random wait to simulate human behavior
+    time.sleep(random.uniform(3, 7))
+    
     wait.until(EC.presence_of_element_located((By.NAME, "username")))
 
     user_input = driver.find_element(By.NAME, "username")
     pass_input = driver.find_element(By.NAME, "password")
 
-    user_input.send_keys(INSTAGRAM_USERNAME)
-    pass_input.send_keys(INSTAGRAM_PASSWORD)
+    # Type with human-like delays
+    for char in INSTAGRAM_USERNAME:
+        user_input.send_keys(char)
+        time.sleep(random.uniform(0.1, 0.3))
+    
+    time.sleep(random.uniform(0.5, 1.5))
+    
+    for char in INSTAGRAM_PASSWORD:
+        pass_input.send_keys(char)
+        time.sleep(random.uniform(0.1, 0.3))
+    
+    time.sleep(random.uniform(0.5, 1))
     pass_input.send_keys(Keys.RETURN)
 
     # Wait for login to complete
-    time.sleep(8)
+    time.sleep(random.uniform(8, 12))
     print("✅ Logged in successfully.")
+
+
 def unfollow_user(driver, profile_url, wait_time=15):
     """
     Visit profile_url, click the Following button, wait for the confirmation modal/overlay,
-    then click the final Unfollow button (targeting the span->ancestor::button).
-    Sleeps 2.5 seconds before returning.
+    then click the final Unfollow button.
     """
     wait = WebDriverWait(driver, wait_time)
     try:
@@ -83,11 +108,13 @@ def unfollow_user(driver, profile_url, wait_time=15):
         print(f"Navigation error to {profile_url}: {e}")
         return False
 
-    # small human-like wait
-    time.sleep(random.uniform(2.0, 4.0))
+    # Human-like wait - random between MIN and MAX
+    wait_time = random.uniform(MIN_WAIT_BETWEEN_PROFILES, MAX_WAIT_BETWEEN_PROFILES)
+    print(f"⏳ Waiting {wait_time:.1f} seconds before action...")
+    time.sleep(wait_time)
 
     try:
-        # Find the "Following" (or related) button whose text is nested inside child div/span
+        # Find the "Following" button
         following_xpath = (
             "//button[.//div[normalize-space(text())='Following']"
             " or .//div[normalize-space(text())='Requested']"
@@ -96,7 +123,7 @@ def unfollow_user(driver, profile_url, wait_time=15):
 
         following_btn = wait.until(EC.element_to_be_clickable((By.XPATH, following_xpath)))
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", following_btn)
-        time.sleep(random.uniform(0.6, 1.1))
+        time.sleep(random.uniform(0.8, 1.5))
 
         # Try normal click, fallback to JS click
         try:
@@ -110,16 +137,15 @@ def unfollow_user(driver, profile_url, wait_time=15):
 
         print(f"Clicked 'Following' on {profile_url}")
 
-        # small pause for overlay/modal animation
-        time.sleep(random.uniform(0.8, 1.4))
+        # Wait for modal animation
+        time.sleep(random.uniform(1.2, 2.0))
 
-        # Wait for the Unfollow option/span to appear — target the span text then get its ancestor button
-        # This matches the HTML you pasted: <span>Unfollow</span> inside nested divs -> ancestor button
+        # Find and click the Unfollow confirmation button
         confirm_xpath_candidates = [
             "//span[normalize-space(text())='Unfollow']/ancestor::button[1]",
             "//button[.//span[normalize-space(text())='Unfollow']]",
             "//button[.//div[normalize-space(text())='Unfollow']]",
-            "//button[.//div[text()='Unfollow']]"  # fallback
+            "//button[.//div[text()='Unfollow']]"
         ]
 
         confirm_btn = None
@@ -132,104 +158,130 @@ def unfollow_user(driver, profile_url, wait_time=15):
                 confirm_btn = None
 
         if not confirm_btn:
-            # As a last resort, try to find a clickable element whose inner text contains 'Unfollow'
+            # Last resort
             try:
                 candidate = driver.find_element(By.XPATH, "//*[normalize-space(text())='Unfollow']")
                 driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", candidate)
                 time.sleep(0.4)
                 try:
                     candidate.click()
-                    print(f"Clicked Unfollow (direct element) for {profile_url}")
-                    time.sleep(2.5)
+                    print(f"✅ Successfully unfollowed: {profile_url}")
+                    time.sleep(random.uniform(2, 3))
                     return True
                 except Exception:
                     driver.execute_script("arguments[0].click();", candidate)
-                    print(f"JS-clicked Unfollow (direct element) for {profile_url}")
-                    time.sleep(2.5)
+                    print(f"✅ Successfully unfollowed: {profile_url}")
+                    time.sleep(random.uniform(2, 3))
                     return True
             except Exception:
                 print("Could not locate the Unfollow button/span after clicking Following.")
-                time.sleep(2.5)
+                time.sleep(random.uniform(2, 3))
                 return False
 
-        # Click the confirmation button (normal click with JS fallback)
+        # Click the confirmation button
         try:
             confirm_btn.click()
-            print(f"✅ Successfully clicked Unfollow for {profile_url}")
+            print(f"✅ Successfully unfollowed: {profile_url}")
         except Exception:
             try:
                 driver.execute_script("arguments[0].click();", confirm_btn)
-                print(f"✅ Successfully JS-clicked Unfollow for {profile_url}")
+                print(f"✅ Successfully unfollowed: {profile_url}")
             except Exception as e:
                 print("Failed to click the Unfollow confirmation button:", e)
-                time.sleep(2.5)
+                time.sleep(random.uniform(2, 3))
                 return False
 
-        # final short pause before moving to next profile
-        time.sleep(2.5)
+        time.sleep(random.uniform(2, 4))
         return True
 
     except Exception as e:
         print(f"Exception in unfollow_user for {profile_url}: {e}")
-        # ensure small pause even on error
-        time.sleep(2.5)
+        time.sleep(random.uniform(2, 3))
         return False
 
-# def unfollow_user(driver, profile_url):
-#     driver.get(profile_url)
-#     wait = WebDriverWait(driver, 15)
-#     time.sleep(4)
 
-#     try:
-#         # Look for "Following" or "Requested" button
-#         unfollow_btn = wait.until(
-#             EC.presence_of_element_located((
-#                 By.XPATH,
-#                 "//button[contains(text(), 'Following') or contains(text(), 'Requested')]"
-#             ))
-#         )
-#         unfollow_btn.click()
-#         print(f"⚙️ Clicked unfollow button on: {profile_url}")
-#         time.sleep(2)
-
-#         # Confirm unfollow in popup
-#         confirm_btn = wait.until(
-#             EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Unfollow')]"))
-#         )
-#         confirm_btn.click()
-#         print(f"✅ Successfully unfollowed: {profile_url}")
-
-#     except Exception as e:
-#         print(f"⚠️ Could not unfollow {profile_url}: {e}")
-
-#     time.sleep(DELAY_BETWEEN_ACTIONS)
+def take_random_break():
+    """Take a random break between actions"""
+    break_time = random.uniform(MIN_BREAK_TIME, MAX_BREAK_TIME)
+    minutes = break_time / 60
+    print(f"☕ Taking a break for {minutes:.1f} minutes...")
+    time.sleep(break_time)
+    print("✅ Break completed, resuming...")
 
 
 def main():
     # Read URLs from CSV
     try:
         df = pd.read_csv(CSV_FILE)
-        df.columns = df.columns.str.strip().str.lower()
+        df.columns = df.columns.str.strip()
         print("📁 CSV columns detected:", df.columns.tolist())
+
+        # Add 'unfollowed' column if it doesn't exist
+        if 'unfollowed' not in df.columns:
+            df['unfollowed'] = False
+        
+        # Add 'unfollow_date' column if it doesn't exist
+        if 'unfollow_date' not in df.columns:
+            df['unfollow_date'] = ''
 
         if "url" not in df.columns:
             raise ValueError("CSV must contain a column named 'url'.")
 
-        profile_urls = df["url"].dropna().tolist()
-        print(f"🔗 Found {len(profile_urls)} profiles to unfollow.")
+        # Filter only profiles that haven't been unfollowed yet
+        profiles_to_unfollow = df[df['unfollowed'] == False].copy()
+        
+        print(f"🔗 Total profiles in CSV: {len(df)}")
+        print(f"✅ Already unfollowed: {len(df[df['unfollowed'] == True])}")
+        print(f"⏳ Remaining to unfollow: {len(profiles_to_unfollow)}")
+        
+        # Apply daily limit
+        if len(profiles_to_unfollow) > DAILY_LIMIT:
+            print(f"⚠️  Limiting to {DAILY_LIMIT} unfollows for today")
+            profiles_to_unfollow = profiles_to_unfollow.head(DAILY_LIMIT)
+        
     except Exception as e:
         print(f"❌ Error reading CSV: {e}")
         return
 
     driver = setup_driver()
+    unfollow_count = 0
+    
     try:
         login_instagram(driver)
-        for url in profile_urls:
-            unfollow_user(driver, url)
+        
+        for idx, row in profiles_to_unfollow.iterrows():
+            url = row['url']
+            
+            # Attempt to unfollow
+            success = unfollow_user(driver, url)
+            
+            if success:
+                unfollow_count += 1
+                # Update the dataframe
+                df.loc[idx, 'unfollowed'] = True
+                df.loc[idx, 'unfollow_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Save progress after each successful unfollow
+                df.to_csv(CSV_FILE, index=False)
+                print(f"📝 Progress saved ({unfollow_count}/{len(profiles_to_unfollow)})")
+                
+                # Take a break after BREAK_AFTER unfollows
+                if unfollow_count % BREAK_AFTER == 0 and unfollow_count < len(profiles_to_unfollow):
+                    take_random_break()
+            
+            # Stop if we've reached the daily limit
+            if unfollow_count >= DAILY_LIMIT:
+                print(f"🛑 Reached daily limit of {DAILY_LIMIT} unfollows")
+                break
+                
+    except KeyboardInterrupt:
+        print("\n⚠️  Script interrupted by user")
+    except Exception as e:
+        print(f"❌ Error during execution: {e}")
     finally:
         driver.quit()
-        print("🏁 Finished all unfollow actions.")
-
+        print(f"🏁 Finished. Total unfollowed: {unfollow_count}")
+        print(f"📊 CSV updated with progress in '{CSV_FILE}'")
 
 if __name__ == "__main__":
     main()
