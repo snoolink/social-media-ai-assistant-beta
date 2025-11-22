@@ -14,17 +14,22 @@ from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/dm_list.csv"  # Must contain columns 'url' and optionally 'userName'
+CSV_FILE = "profiles-data/suggested_profiles-11-21.csv"  # Must contain columns 'url' and optionally 'userName'
 MESSAGE_TEMPLATE = """Hi {name}! 👋
 
-I came across your profile and loved your content. Would love to connect!"""
+We came across your profile and absolutely loved your content. Your style really aligns with the vibes at Snoolink.
 
+We are currently beta-testing our new content creation platform and reaching out to a small group of early creators we genuinely admire. We would love to create a free custom reel for you based on your preferred themes/genres, no strings attached.
+
+If this sounds exciting, just say the word and things will get rolling for you! Looking forward to collaborating. Cheers, Snoolink Team"""
+
+MAX_FOLLOWERS = 35000  # Only message profiles with followers below this threshold
 DAILY_DM_LIMIT = 50  # Maximum DMs per day to avoid spam detection
 BREAK_AFTER = 10  # Take a break after this many DMs
-MIN_BREAK_TIME = 120  # Minimum break time in seconds (2 minutes)
-MAX_BREAK_TIME = 1800  # Maximum break time in seconds (30 minutes)
-MIN_WAIT_BETWEEN_DMS = 15  # Minimum wait between DMs (seconds)
-MAX_WAIT_BETWEEN_DMS = 45  # Maximum wait between DMs (seconds)
+MIN_BREAK_TIME = 12  # Minimum break time in seconds (2 minutes)
+MAX_BREAK_TIME = 90  # Maximum break time in seconds (30 minutes)
+MIN_WAIT_BETWEEN_DMS = 1  # Minimum wait between DMs (seconds)
+MAX_WAIT_BETWEEN_DMS = 4  # Maximum wait between DMs (seconds)
 # ===============================
 
 def setup_driver():
@@ -128,6 +133,98 @@ def extract_username_from_url(url):
     if len(parts) > 0:
         return parts[-1]
     return "there"  # fallback
+
+
+def parse_follower_count(follower_text):
+    """
+    Parse follower count text and return as integer
+    Handles formats like: "1,205", "1.2K", "35.5K", "1.5M"
+    """
+    try:
+        # Remove commas and whitespace
+        follower_text = follower_text.strip().replace(',', '')
+        
+        # Handle K (thousands)
+        if 'K' in follower_text.upper():
+            number = float(follower_text.upper().replace('K', ''))
+            return int(number * 1000)
+        
+        # Handle M (millions)
+        elif 'M' in follower_text.upper():
+            number = float(follower_text.upper().replace('M', ''))
+            return int(number * 1000000)
+        
+        # Handle regular numbers
+        else:
+            return int(float(follower_text))
+    
+    except Exception as e:
+        print(f"⚠️  Error parsing follower count '{follower_text}': {e}")
+        return None
+
+
+def scrape_follower_count(driver, username, wait_time=10):
+    """
+    Scrape the follower count from the Instagram profile page
+    Returns the follower count as an integer, or None if not found
+    """
+    wait = WebDriverWait(driver, wait_time)
+    
+    try:
+        # Multiple XPath patterns to find follower count
+        follower_xpaths = [
+            # Pattern 1: Look for link to followers page with span containing count
+            "//a[contains(@href, '/followers/')]//span[@class='x5n08af x1s688f']",
+            "//a[contains(@href, '/followers/')]//span[contains(@class, 'x5n08af')]",
+            
+            # Pattern 2: Look for the specific structure from your HTML
+            "//a[contains(@href, '/followers/')]//span[@class='html-span xdj266r x14z9mp xat24cr x1lziwak xexx8yu xyri2b x18d9i69 x1c1uobl x1hl2dhg x16tdsg8 x1vvkbs']",
+            
+            # Pattern 3: More general pattern
+            "//a[contains(@href, '/followers/')]//span[contains(text(), ',') or contains(text(), 'K') or contains(text(), 'M')]",
+            
+            # Pattern 4: Look for span with title attribute containing numbers
+            "//a[contains(@href, '/followers/')]//span[@title]"
+        ]
+        
+        follower_count = None
+        follower_text = None
+        
+        for xpath in follower_xpaths:
+            try:
+                elements = driver.find_elements(By.XPATH, xpath)
+                
+                for element in elements:
+                    # Try to get text from title attribute first (more accurate)
+                    title = element.get_attribute('title')
+                    if title and (title.replace(',', '').replace('.', '').isdigit() or 'K' in title.upper() or 'M' in title.upper()):
+                        follower_text = title
+                        break
+                    
+                    # Otherwise get the text content
+                    text = element.text.strip()
+                    if text and (text.replace(',', '').replace('.', '').isdigit() or 'K' in text.upper() or 'M' in text.upper()):
+                        follower_text = text
+                        break
+                
+                if follower_text:
+                    break
+                    
+            except:
+                continue
+        
+        if follower_text:
+            follower_count = parse_follower_count(follower_text)
+            if follower_count is not None:
+                print(f"👥 Found follower count: {follower_count:,} ({follower_text})")
+                return follower_count
+        
+        print(f"⚠️  Could not find follower count for {username}")
+        return None
+        
+    except Exception as e:
+        print(f"⚠️  Error scraping follower count for {username}: {e}")
+        return None
 
 
 def scrape_first_name(driver, wait_time=10):
@@ -255,9 +352,10 @@ def check_and_follow_if_needed(driver, username, wait_time=10):
         return True  # Proceed anyway
 
 
-def send_dm(driver, profile_url, username, message, wait_time=15):
+def send_dm(driver, profile_url, username, message, max_followers, wait_time=15):
     """
-    Visit profile, follow if needed, scrape first name, click Message button, and send DM
+    Visit profile, check follower count, follow if needed, scrape first name, and send DM
+    Returns tuple: (success, scraped_name, follower_count, skipped_reason)
     """
     wait = WebDriverWait(driver, wait_time)
     
@@ -266,11 +364,25 @@ def send_dm(driver, profile_url, username, message, wait_time=15):
         print(f"📍 Visiting: {profile_url}")
     except Exception as e:
         print(f"❌ Navigation error to {profile_url}: {e}")
-        return False, None
+        return False, None, None, "navigation_error"
 
     # Human-like wait
     wait_time_human = random.uniform(3, 6)
     time.sleep(wait_time_human)
+
+    # First, scrape the follower count
+    follower_count = scrape_follower_count(driver, username)
+    
+    # Check if follower count exceeds the limit
+    if follower_count is not None and follower_count > max_followers:
+        print(f"⏭️  SKIPPING {username}: {follower_count:,} followers (exceeds limit of {max_followers:,})")
+        return False, None, follower_count, "exceeds_follower_limit"
+    
+    if follower_count is None:
+        print(f"⚠️  Could not determine follower count for {username}, skipping to be safe")
+        return False, None, None, "follower_count_unknown"
+    
+    print(f"✅ {username} has {follower_count:,} followers (below {max_followers:,} limit) - proceeding...")
 
     # Check if we need to follow them first
     follow_success = check_and_follow_if_needed(driver, username)
@@ -310,7 +422,7 @@ def send_dm(driver, profile_url, username, message, wait_time=15):
         
         if not message_btn:
             print(f"⚠️  Could not find Message button for {username}")
-            return False
+            return False, first_name, follower_count, "no_message_button"
         
         # Scroll to button and click
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", message_btn)
@@ -343,15 +455,15 @@ def send_dm(driver, profile_url, username, message, wait_time=15):
         
         if not message_input:
             print(f"⚠️  Could not find message input box for {username}")
-            return False
+            return False, first_name, follower_count, "no_input_box"
         
         # Click on the input to focus
         message_input.click()
-        time.sleep(random.uniform(0.5, 1))
+        time.sleep(random.uniform(0.2, 0.8))
         
         # Clear any existing text
         message_input.clear()
-        time.sleep(0.3)
+        time.sleep(0.2)
         
         # Type message with human-like delays, encoding to ASCII to avoid BMP errors
         # Remove emojis and non-ASCII characters that might cause issues
@@ -389,7 +501,7 @@ def send_dm(driver, profile_url, username, message, wait_time=15):
         
         if not send_btn:
             print(f"⚠️  Could not find Send button for {username}")
-            return False
+            return False, first_name, follower_count, "no_send_button"
         
         try:
             send_btn.click()
@@ -398,12 +510,12 @@ def send_dm(driver, profile_url, username, message, wait_time=15):
         
         print(f"✅ Successfully sent DM to {username}")
         time.sleep(random.uniform(2, 4))
-        return True, first_name
+        return True, first_name, follower_count, "success"
         
     except Exception as e:
         print(f"❌ Exception sending DM to {username}: {e}")
         time.sleep(random.uniform(2, 3))
-        return False, first_name
+        return False, first_name, follower_count, f"error: {str(e)}"
 
 
 def take_random_break():
@@ -437,6 +549,12 @@ def main():
         
         if 'followed' not in df.columns:
             df['followed'] = False
+        
+        if 'follower_count' not in df.columns:
+            df['follower_count'] = None
+        
+        if 'skip_reason' not in df.columns:
+            df['skip_reason'] = ''
 
         if "url" not in df.columns:
             raise ValueError("CSV must contain a column named 'url'.")
@@ -450,6 +568,7 @@ def main():
         
         print(f"🔗 Total profiles in CSV: {len(df)}")
         print(f"✅ Already messaged: {len(df[df['dm_sent'] == True])}")
+        print(f"⏭️  Skipped (over {MAX_FOLLOWERS:,} followers): {len(df[df['skip_reason'] == 'exceeds_follower_limit'])}")
         print(f"⏳ Remaining to message: {len(profiles_to_dm)}")
         
         # Apply daily limit
@@ -463,6 +582,7 @@ def main():
 
     driver = setup_driver()
     dm_count = 0
+    skip_count = 0
     
     try:
         login_instagram(driver)
@@ -471,31 +591,43 @@ def main():
             url = row['url']
             username = row['userName']
             
-            # Wait between DMs (human-like behavior)
-            if dm_count > 0:
+            # Wait between attempts (human-like behavior)
+            if dm_count > 0 or skip_count > 0:
                 wait_time = random.uniform(MIN_WAIT_BETWEEN_DMS, MAX_WAIT_BETWEEN_DMS)
-                print(f"⏳ Waiting {wait_time:.1f} seconds before next DM...")
+                print(f"⏳ Waiting {wait_time:.1f} seconds before next profile...")
                 time.sleep(wait_time)
             
-            # Attempt to send DM (message will be personalized inside send_dm function)
-            success, scraped_name = send_dm(driver, url, username, MESSAGE_TEMPLATE)
+            # Attempt to send DM (includes follower count check)
+            success, scraped_name, follower_count, skip_reason = send_dm(
+                driver, url, username, MESSAGE_TEMPLATE, MAX_FOLLOWERS
+            )
+            
+            # Update the dataframe
+            df.loc[idx, 'follower_count'] = follower_count
             
             if success:
                 dm_count += 1
-                # Update the dataframe
                 df.loc[idx, 'dm_sent'] = True
                 df.loc[idx, 'dm_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 df.loc[idx, 'dm_status'] = 'success'
                 df.loc[idx, 'first_name'] = scraped_name if scraped_name else username
-                df.loc[idx, 'followed'] = True  # Mark as followed since we followed before messaging
+                df.loc[idx, 'followed'] = True
+                df.loc[idx, 'skip_reason'] = ''
             else:
-                df.loc[idx, 'dm_status'] = 'failed'
+                if skip_reason == 'exceeds_follower_limit':
+                    skip_count += 1
+                    df.loc[idx, 'dm_sent'] = False  # Not sent, but checked
+                    df.loc[idx, 'dm_status'] = 'skipped'
+                    df.loc[idx, 'skip_reason'] = skip_reason
+                else:
+                    df.loc[idx, 'dm_status'] = 'failed'
+                    df.loc[idx, 'skip_reason'] = skip_reason
+                
                 df.loc[idx, 'first_name'] = scraped_name if scraped_name else ''
-                # Don't mark as followed if DM failed
             
             # Save progress after each attempt
             df.to_csv(CSV_FILE, index=False)
-            print(f"📝 Progress saved ({dm_count}/{len(profiles_to_dm)} successful)")
+            print(f"📝 Progress saved ({dm_count} sent, {skip_count} skipped)")
             
             # Take a break after BREAK_AFTER DMs
             if dm_count > 0 and dm_count % BREAK_AFTER == 0 and dm_count < len(profiles_to_dm):
@@ -513,6 +645,7 @@ def main():
     finally:
         driver.quit()
         print(f"🏁 Finished. Total DMs sent: {dm_count}")
+        print(f"⏭️  Total profiles skipped (follower limit): {skip_count}")
         print(f"📊 CSV updated with progress in '{CSV_FILE}'")
 
 if __name__ == "__main__":
