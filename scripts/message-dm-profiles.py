@@ -14,22 +14,24 @@ from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/suggested_profiles-11-21.csv"  # Must contain columns 'url' and optionally 'userName'
-MESSAGE_TEMPLATE = """Hi {name}! 👋
+CSV_FILE = "profiles-data/suggested_profiles_2025-11-25.csv"  # Must contain columns 'url' and optionally 'userName'
+MESSAGE_TEMPLATE = """Hi {name}!
 
-We came across your profile and absolutely loved your content. Your style really aligns with the vibes at Snoolink.
+Firstly what a beauty of a page! I am Jay and am building a content creation platform --> @snoolink. I genuinely loved your content and the vibe you bring… felt super aligned with what we are building.
 
-We are currently beta-testing our new content creation platform and reaching out to a small group of early creators we genuinely admire. We would love to create a free custom reel for you based on your preferred themes/genres, no strings attached.
+I am currently working with a exclusive group of creators, and I would love to make a FREE custom reel for you— no commitments, just something cool we can create together.
 
-If this sounds exciting, just say the word and things will get rolling for you! Looking forward to collaborating. Cheers, Snoolink Team"""
+Have a look at what we are building and share your thoughts! Just let me know, happy to get things rolling!"""
 
 MAX_FOLLOWERS = 35000  # Only message profiles with followers below this threshold
-DAILY_DM_LIMIT = 50  # Maximum DMs per day to avoid spam detection
+MIN_FOLLOWERS = 1500  # Only message profiles with followers below this threshold
+
+DAILY_DM_LIMIT = 150  # Maximum DMs per day to avoid spam detection
 BREAK_AFTER = 10  # Take a break after this many DMs
 MIN_BREAK_TIME = 12  # Minimum break time in seconds (2 minutes)
-MAX_BREAK_TIME = 90  # Maximum break time in seconds (30 minutes)
+MAX_BREAK_TIME = 44  # Maximum break time in seconds (30 minutes)
 MIN_WAIT_BETWEEN_DMS = 1  # Minimum wait between DMs (seconds)
-MAX_WAIT_BETWEEN_DMS = 4  # Maximum wait between DMs (seconds)
+MAX_WAIT_BETWEEN_DMS = 3  # Maximum wait between DMs (seconds)
 # ===============================
 
 def setup_driver():
@@ -352,7 +354,7 @@ def check_and_follow_if_needed(driver, username, wait_time=10):
         return True  # Proceed anyway
 
 
-def send_dm(driver, profile_url, username, message, max_followers, wait_time=15):
+def send_dm(driver, profile_url, username, message, max_followers,min_followers, wait_time=15):
     """
     Visit profile, check follower count, follow if needed, scrape first name, and send DM
     Returns tuple: (success, scraped_name, follower_count, skipped_reason)
@@ -367,15 +369,15 @@ def send_dm(driver, profile_url, username, message, max_followers, wait_time=15)
         return False, None, None, "navigation_error"
 
     # Human-like wait
-    wait_time_human = random.uniform(3, 6)
+    wait_time_human = random.uniform(1, 3)
     time.sleep(wait_time_human)
 
     # First, scrape the follower count
     follower_count = scrape_follower_count(driver, username)
     
     # Check if follower count exceeds the limit
-    if follower_count is not None and follower_count > max_followers:
-        print(f"⏭️  SKIPPING {username}: {follower_count:,} followers (exceeds limit of {max_followers:,})")
+    if follower_count is not None and follower_count > max_followers or follower_count is not None and follower_count < min_followers:
+        print(f"⏭️  SKIPPING {username}: {follower_count:,} followers (exceeds limit)")
         return False, None, follower_count, "exceeds_follower_limit"
     
     if follower_count is None:
@@ -434,7 +436,7 @@ def send_dm(driver, profile_url, username, message, max_followers, wait_time=15)
             driver.execute_script("arguments[0].click();", message_btn)
         
         print(f"💬 Opened message window for {username}")
-        time.sleep(random.uniform(2, 4))
+        # time.sleep(random.uniform(1, 2))
         
         # Find the message input textarea
         message_input_xpaths = [
@@ -477,7 +479,7 @@ def send_dm(driver, profile_url, username, message, max_followers, wait_time=15)
             else:
                 time.sleep(random.uniform(0.05, 0.15))
         
-        time.sleep(random.uniform(1, 2))
+        # time.sleep(random.uniform(1, 2))
         
         # Find and click Send button using the specific structure from your HTML
         send_button_xpaths = [
@@ -599,7 +601,7 @@ def main():
             
             # Attempt to send DM (includes follower count check)
             success, scraped_name, follower_count, skip_reason = send_dm(
-                driver, url, username, MESSAGE_TEMPLATE, MAX_FOLLOWERS
+                driver, url, username, MESSAGE_TEMPLATE, MAX_FOLLOWERS, MIN_FOLLOWERS
             )
             
             # Update the dataframe

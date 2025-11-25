@@ -54,13 +54,22 @@
   console.log(`✨ Found ${uniqueProfiles.length} unique suggested profiles`);
   console.log(uniqueProfiles);
   
-  // Create downloadable CSV
+  // // Create downloadable CSV
+  // const csv = 'userName,url\n' + uniqueProfiles.map(u => `${u},https://www.instagram.com/${u}/`).join('\n');
+  // const blob = new Blob([csv], { type: 'text/csv' });
+  // const url = URL.createObjectURL(blob);
+  // const a = document.createElement('a');
+  // a.href = url;
+  // a.download = 'suggested_profiles.csv';
+  // a.click();
+    // Create downloadable CSV with timestamp
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
   const csv = 'userName,url\n' + uniqueProfiles.map(u => `${u},https://www.instagram.com/${u}/`).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'suggested_profiles.csv';
+  a.download = `suggested_profiles_${timestamp}.csv`;
   a.click();
   
   console.log("💾 CSV file downloaded as 'suggested_profiles.csv'");

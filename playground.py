@@ -14,7 +14,7 @@ from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/suggested_profiles.csv"  # Must contain columns 'url' and optionally 'userName'
+CSV_FILE = "profiles-data/suggested_profiles_11-24.csv"  # Must contain columns 'url' and optionally 'userName'
 MESSAGE_TEMPLATE = """Hi {name}! 👋
 
 We came across your profile and absolutely loved your content. Your style really aligns with the vibes at Snoolink.
@@ -24,12 +24,14 @@ We are currently beta-testing our new content creation platform and reaching out
 If this sounds exciting, just say the word and things will get rolling for you! Looking forward to collaborating. Cheers, Snoolink Team"""
 
 MAX_FOLLOWERS = 35000  # Only message profiles with followers below this threshold
+MIN_FOLLOWERS = 15000  # Only message profiles with followers above this threshold
+
 DAILY_DM_LIMIT = 50  # Maximum DMs per day to avoid spam detection
 BREAK_AFTER = 10  # Take a break after this many DMs
 MIN_BREAK_TIME = 12  # Minimum break time in seconds (2 minutes)
 MAX_BREAK_TIME = 90  # Maximum break time in seconds (30 minutes)
-MIN_WAIT_BETWEEN_DMS = 15  # Minimum wait between DMs (seconds)
-MAX_WAIT_BETWEEN_DMS = 45  # Maximum wait between DMs (seconds)
+MIN_WAIT_BETWEEN_DMS = 1  # Minimum wait between DMs (seconds)
+MAX_WAIT_BETWEEN_DMS = 4  # Maximum wait between DMs (seconds)
 # ===============================
 
 def setup_driver():
@@ -285,6 +287,40 @@ def scrape_first_name(driver, wait_time=10):
         return None
 
 
+def check_if_follows_you(driver, username, wait_time=10):
+    """
+    Check if the profile already follows you (shows 'Follow Back' button)
+    Returns True if they follow you (skip them), False otherwise
+    """
+    wait = WebDriverWait(driver, wait_time)
+    
+    try:
+        # Look for "Follow Back" button - if it exists, they follow us
+        follow_back_xpaths = [
+            "//button//div[text()='Follow Back']",
+            "//button[contains(text(), 'Follow Back')]",
+            "//div[text()='Follow Back']/ancestor::button",
+            "//button[@type='button']//div[text()='Follow Back']",
+            "//*[text()='Follow Back' and (ancestor::button or self::button)]"
+        ]
+        
+        for xpath in follow_back_xpaths:
+            try:
+                follow_back_btn = driver.find_element(By.XPATH, xpath)
+                if follow_back_btn and follow_back_btn.is_displayed():
+                    print(f"🔄 {username} already follows you (Follow Back button found) - SKIPPING")
+                    return True
+            except:
+                continue
+        
+        print(f"✓ {username} does not follow you - proceeding")
+        return False
+        
+    except Exception as e:
+        print(f"⚠️  Error checking if {username} follows you: {e}")
+        return False  # If we can't determine, proceed anyway
+
+
 def check_and_follow_if_needed(driver, username, wait_time=10):
     """
     Check if the profile is already followed. If not, follow them.
@@ -296,7 +332,7 @@ def check_and_follow_if_needed(driver, username, wait_time=10):
         # Look for Follow button - if it exists, we're not following them yet
         follow_button_xpaths = [
             "//button//div[text()='Follow']",
-            "//button[contains(text(), 'Follow') and not(contains(text(), 'Following'))]",
+            "//button[contains(text(), 'Follow') and not(contains(text(), 'Following')) and not(contains(text(), 'Follow Back'))]",
             "//div[text()='Follow']/ancestor::button",
             "//button[@type='button']//div[text()='Follow']"
         ]
@@ -306,7 +342,12 @@ def check_and_follow_if_needed(driver, username, wait_time=10):
             try:
                 follow_btn = driver.find_element(By.XPATH, xpath)
                 if follow_btn and follow_btn.is_displayed():
-                    break
+                    # Make sure it's not "Follow Back" button
+                    btn_text = follow_btn.text.strip()
+                    if btn_text == "Follow":
+                        break
+                    else:
+                        follow_btn = None
             except:
                 continue
         
@@ -352,9 +393,9 @@ def check_and_follow_if_needed(driver, username, wait_time=10):
         return True  # Proceed anyway
 
 
-def send_dm(driver, profile_url, username, message, max_followers, wait_time=15):
+def send_dm(driver, profile_url, username, message, max_followers, min_followers, wait_time=15):
     """
-    Visit profile, check follower count, follow if needed, scrape first name, and send DM
+    Visit profile, check follower count, check if they follow you, follow if needed, scrape first name, and send DM
     Returns tuple: (success, scraped_name, follower_count, skipped_reason)
     """
     wait = WebDriverWait(driver, wait_time)
@@ -373,16 +414,28 @@ def send_dm(driver, profile_url, username, message, max_followers, wait_time=15)
     # First, scrape the follower count
     follower_count = scrape_follower_count(driver, username)
     
-    # Check if follower count exceeds the limit
-    if follower_count is not None and follower_count > max_followers:
-        print(f"⏭️  SKIPPING {username}: {follower_count:,} followers (exceeds limit of {max_followers:,})")
-        return False, None, follower_count, "exceeds_follower_limit"
+    # Check if follower count is outside the acceptable range
+    if follower_count is not None:
+        if follower_count > max_followers:
+            print(f"⏭️  SKIPPING {username}: {follower_count:,} followers (exceeds limit of {max_followers:,})")
+            return False, None, follower_count, "exceeds_follower_limit"
+        elif follower_count < min_followers:
+            print(f"⏭️  SKIPPING {username}: {follower_count:,} followers (below minimum of {min_followers:,})")
+            return False, None, follower_count, "below_follower_minimum"
     
     if follower_count is None:
         print(f"⚠️  Could not determine follower count for {username}, skipping to be safe")
         return False, None, None, "follower_count_unknown"
     
-    print(f"✅ {username} has {follower_count:,} followers (below {max_followers:,} limit) - proceeding...")
+    print(f"✅ {username} has {follower_count:,} followers (within range {min_followers:,}-{max_followers:,}) - proceeding...")
+
+    # NEW: Check if they already follow you
+    if check_if_follows_you(driver, username):
+        print(f"⏭️  SKIPPING {username}: They already follow you")
+        return False, None, follower_count, "already_follows_you"
+    
+    # Small wait before next check
+    time.sleep(random.uniform(0.5, 1))
 
     # Check if we need to follow them first
     follow_success = check_and_follow_if_needed(driver, username)
@@ -569,6 +622,7 @@ def main():
         print(f"🔗 Total profiles in CSV: {len(df)}")
         print(f"✅ Already messaged: {len(df[df['dm_sent'] == True])}")
         print(f"⏭️  Skipped (over {MAX_FOLLOWERS:,} followers): {len(df[df['skip_reason'] == 'exceeds_follower_limit'])}")
+        print(f"⏭️  Skipped (already follow you): {len(df[df['skip_reason'] == 'already_follows_you'])}")
         print(f"⏳ Remaining to message: {len(profiles_to_dm)}")
         
         # Apply daily limit
@@ -597,9 +651,9 @@ def main():
                 print(f"⏳ Waiting {wait_time:.1f} seconds before next profile...")
                 time.sleep(wait_time)
             
-            # Attempt to send DM (includes follower count check)
+            # Attempt to send DM (includes follower count check and follow back check)
             success, scraped_name, follower_count, skip_reason = send_dm(
-                driver, url, username, MESSAGE_TEMPLATE, MAX_FOLLOWERS
+                driver, url, username, MESSAGE_TEMPLATE, MAX_FOLLOWERS, MIN_FOLLOWERS
             )
             
             # Update the dataframe
@@ -614,7 +668,7 @@ def main():
                 df.loc[idx, 'followed'] = True
                 df.loc[idx, 'skip_reason'] = ''
             else:
-                if skip_reason == 'exceeds_follower_limit':
+                if skip_reason in ['exceeds_follower_limit', 'below_follower_minimum', 'already_follows_you']:
                     skip_count += 1
                     df.loc[idx, 'dm_sent'] = False  # Not sent, but checked
                     df.loc[idx, 'dm_status'] = 'skipped'
@@ -645,7 +699,7 @@ def main():
     finally:
         driver.quit()
         print(f"🏁 Finished. Total DMs sent: {dm_count}")
-        print(f"⏭️  Total profiles skipped (follower limit): {skip_count}")
+        print(f"⏭️  Total profiles skipped: {skip_count}")
         print(f"📊 CSV updated with progress in '{CSV_FILE}'")
 
 if __name__ == "__main__":
