@@ -14,10 +14,10 @@ from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/suggested_profiles_2025-11-25.csv"  # Must contain columns 'url' and optionally 'userName'
+CSV_FILE = "profiles-data/suggested_profiles_2025-11-26_02-20-20.csv"  # Must contain columns 'url' and optionally 'userName'
 MESSAGE_TEMPLATE = """Hi {name}!
 
-Firstly what a beauty of a page! I am Jay and am building a content creation platform --> @snoolink. I genuinely loved your content and the vibe you bring… felt super aligned with what we are building.
+Firstly what a great profile! I am Jay and am building a content creation  platform --> @snoolink. I genuinely loved your content and the vibe you bring… felt super aligned with what we are building.
 
 I am currently working with a exclusive group of creators, and I would love to make a FREE custom reel for you— no commitments, just something cool we can create together.
 
