@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - snoolink</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/YC8Z9Xo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'snoolink-purple': '#5D1EF4',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .gradient-animate { 
+            background-size: 200% 200%;
+            animation: gradient 8s ease infinite;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-3">
+                <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                <span class="text-2xl font-bold">snoolink</span>
+            </a>
+            <div class="hidden md:flex space-x-8">
+                <a href="index.html#features" class="hover:text-purple-400 transition">Features</a>
+                <a href="pricing.html" class="text-snoolink-purple font-semibold">Pricing</a>
+                <a href="wall-of-fame.html" class="hover:text-purple-400 transition">Wall of Fame</a>
+                <a href="about.html" class="hover:text-purple-400 transition">About</a>
+                <a href="contact.html" class="hover:text-purple-400 transition">Contact</a>
+            </div>
+            <a href="#cta" class="bg-snoolink-purple px-6 py-2 rounded-full font-semibold hover:scale-105 transition transform shadow-lg hover:shadow-snoolink-purple/50">
+                Get Started
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-snoolink-purple/40 via-gray-900 to-snoolink-purple/20 gradient-animate"></div>
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-snoolink-purple rounded-full filter blur-3xl animate-float"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 bg-snoolink-purple rounded-full filter blur-3xl animate-float" style="animation-delay: 2s;"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto text-center">
+            <div class="inline-block mb-6 px-4 py-2 bg-snoolink-purple/20 rounded-full border border-snoolink-purple/30">
+                <span class="text-purple-300">💰 Simple, Transparent Pricing</span>
+            </div>
+            
+            <h1 class="text-6xl md:text-7xl font-bold mb-6 leading-tight">
+                Plans That Scale<br/>
+                <span class="bg-gradient-to-r from-snoolink-purple to-purple-400 bg-clip-text text-transparent">With Your Growth</span>
+            </h1>
+            
+            <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
+                Start free, upgrade when you need more. All plans include 14-day free trial.
+            </p>
+
+            <!-- Billing Toggle -->
+            <div class="flex items-center justify-center gap-4 mb-8">
+                <span id="monthlyLabel" class="font-semibold text-lg">Monthly</span>
+                <button onclick="toggleBilling()" class="relative w-14 h-8 bg-gray-700 rounded-full transition">
+                    <div id="toggleCircle" class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full transition-transform"></div>
+                </button>
+                <span id="yearlyLabel" class="text-gray-400 text-lg">Yearly</span>
+                <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-semibold">Save 20%</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Cards -->
+    <section class="py-16 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Starter Plan -->
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold mb-2">Starter</h3>
+                        <p class="text-gray-400 text-sm mb-4">Perfect for getting started</p>
+                        <div class="text-5xl font-bold mb-2">
+                            $<span id="starterPrice">29</span>
+                        </div>
+                        <p class="text-gray-400 text-sm">per month</p>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span><strong>5,000</strong> media files</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>AI-powered search & tagging</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span><strong>1</strong> social media account</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Basic automation (100 actions/day)</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Email support</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Mobile app access</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-gray-600 mr-3 text-xl">✗</span>
+                            <span class="text-gray-500">Advanced analytics</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-gray-600 mr-3 text-xl">✗</span>
+                            <span class="text-gray-500">API access</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="w-full py-4 border-2 border-snoolink-purple rounded-full hover:bg-snoolink-purple/20 transition font-semibold">
+                        Start Free Trial
+                    </button>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform border-2 border-snoolink-purple relative">
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-snoolink-purple px-6 py-1 rounded-full text-sm font-bold shadow-lg">
+                        MOST POPULAR
+                    </div>
+                    
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold mb-2">Pro</h3>
+                        <p class="text-gray-400 text-sm mb-4">For serious creators</p>
+                        <div class="text-5xl font-bold mb-2">
+                            $<span id="proPrice">79</span>
+                        </div>
+                        <p class="text-gray-400 text-sm">per month</p>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span><strong>Unlimited</strong> media files</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Advanced AI features</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span><strong>5</strong> social media accounts</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Full automation (1000 actions/day)</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Priority email & chat support</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Advanced analytics dashboard</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Content performance predictions</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Custom AI training</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>API access (10K requests/month)</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="w-full py-4 bg-snoolink-purple rounded-full font-bold hover:scale-105 transition shadow-lg hover:shadow-snoolink-purple/50">
+                        Start Free Trial
+                    </button>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold mb-2">Enterprise</h3>
+                        <p class="text-gray-400 text-sm mb-4">For agencies & teams</p>
+                        <div class="text-5xl font-bold mb-2">
+                            Custom
+                        </div>
+                        <p class="text-gray-400 text-sm">contact sales</p>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span><strong>Everything in Pro</strong></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span><strong>Unlimited</strong> team members</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span><strong>Unlimited</strong> social accounts</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>White-label option</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Dedicated account manager</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>24/7 phone support</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Custom integrations</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>SLA guarantees</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3 text-xl">✓</span>
+                            <span>Unlimited API requests</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="w-full py-4 border-2 border-snoolink-purple rounded-full hover:bg-snoolink-purple/20 transition font-semibold">
+                        Contact Sales
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature Comparison Table -->
+    <section class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Detailed Feature Comparison</h2>
+                <p class="text-xl text-gray-400">Everything you need to know about each plan</p>
+            </div>
+
+            <div class="glass rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-snoolink-purple/20">
+                            <tr>
+                                <th class="text-left p-6 font-bold">Feature</th>
+                                <th class="text-center p-6 font-bold">Starter</th>
+                                <th class="text-center p-6 font-bold">Pro</th>
+                                <th class="text-center p-6 font-bold">Enterprise</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            <tr>
+                                <td class="p-6 font-semibold">Media Storage</td>
+                                <td class="text-center p-6">5,000 files</td>
+                                <td class="text-center p-6 text-snoolink-purple font-bold">Unlimited</td>
+                                <td class="text-center p-6 text-snoolink-purple font-bold">Unlimited</td>
+                            </tr>
+                            <tr class="bg-gray-800/50">
+                                <td class="p-6 font-semibold">AI Search & Tagging</td>
+                                <td class="text-center p-6">✓</td>
+                                <td class="text-center p-6">✓</td>
+                                <td class="text-center p-6">✓</td>
+                            </tr>
+                            <tr>
+                                <td class="p-6 font-semibold">Social Accounts</td>
+                                <td class="text-center p-6">1</td>
+                                <td class="text-center p-6">5</td>
+                                <td class="text-center p-6 text-snoolink-purple font-bold">Unlimited</td>
+                            </tr>
+                            <tr class="bg-gray-800/50">
+                                <td class="p-6 font-semibold">Daily Automation Actions</td>
+                                <td class="text-center p-6">100</td>
+                                <td class="text-center p-6">1,000</td>
+                                <td class="text-center p-6 text-snoolink-purple font-bold">Unlimited</td>
+                            </tr>
+                            <tr>
+                                <td class="p-6 font-semibold">Analytics Dashboard</td>
+                                <td class="text-center p-6">Basic</td>
+                                <td class="text-center p-6">Advanced</td>
+                                <td class="text-center p-6">Advanced + Custom</td>
+                            </tr>
+                            <tr class="bg-gray-800/50">
+                                <td class="p-6 font-semibold">Content Performance Predictions</td>
+                                <td class="text-center p-6">✗</td>
+                                <td class="text-center p-6">✓</td>
+                                <td class="text-center p-6">✓</td>
+                            </tr>
+                            <tr>
+                                <td class="p-6 font-semibold">API Access</td>
+                                <td class="text-center p-6">✗</td>
+                                <td class="text-center p-6">10K requests/mo</td>
+                                <td class="text-center p-6 text-snoolink-purple font-bold">Unlimited</td>
+                            </tr>
+                            <tr class="bg-gray-800/50">
+                                <td class="p-6 font-semibold">Team Members</td>
+                                <td class="text-center p-6">1</td>
+                                <td class="text-center p-6">3</td>
+                                <td class="text-center p-6 text-snoolink-purple font-bold">Unlimited</td>
+                            </tr>
+                            <tr>
+                                <td class="p-6 font-semibold">Support</td>
+                                <td class="text-center p-6">Email</td>
+                                <td class="text-center p-6">Email + Chat</td>
+                                <td class="text-center p-6">24/7 Phone</td>
+                            </tr>
+                            <tr class="bg-gray-800/50">
+                                <td class="p-6 font-semibold">White Label</td>
+                                <td class="text-center p-6">✗</td>
+                                <td class="text-center p-6">✗</td>
+                                <td class="text-center p-6">✓</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROI Calculator -->
+    <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-5xl font-bold mb-6">Calculate Your ROI</h2>
+                <p class="text-xl text-gray-400">See how much time and money snoolink saves you</p>
+            </div>
+
+            <div class="glass p-8 rounded-2xl">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block mb-2 font-semibold">Hours spent on content management per week</label>
+                        <input type="range" id="hoursSlider" min="1" max="40" value="15" class="w-full" oninput="calculateROI()">
+                        <div class="text-center text-3xl font-bold text-snoolink-purple mt-2">
+                            <span id="hoursDisplay">15</span> hours/week
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block mb-2 font-semibold">Your hourly rate</label>
+                        <input type="range" id="rateSlider" min="20" max="500" value="100" step="10" class="w-full" oninput="calculateROI()">
+                        <div class="text-center text-3xl font-bold text-snoolink-purple mt-2">
+                            $<span id="rateDisplay">100</span>/hour
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-700 pt-6 mt-6">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="text-center glass p-6 rounded-xl">
+                                <div class="text-gray-400 mb-2">Time Saved per Month</div>
+                                <div class="text-4xl font-bold text-green-400"><span id="timeSaved">45</span> hours</div>
+                            </div>
+                            <div class="text-center glass p-6 rounded-xl">
+                                <div class="text-gray-400 mb-2">Money Saved per Month</div>
+                                <div class="text-4xl font-bold text-green-400">$<span id="moneySaved">4,500</span></div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-6">
+                            <div class="text-gray-400 mb-2">Annual Value</div>
+                            <div class="text-5xl font-bold text-snoolink-purple">$<span id="annualSaved">54,000</span></div>
+                            <p class="text-gray-400 mt-4">snoolink Pro costs just $948/year - that's a <strong class="text-green-400"><span id="roiPercent">5,600</span>%</strong> ROI!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Frequently Asked Questions</h2>
+            </div>
+
+            <div class="space-y-4">
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-bold mb-3">Can I change plans anytime?</h3>
+                    <p class="text-gray-400">Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate the difference.</p>
+                </div>
+
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-bold mb-3">What happens after my free trial?</h3>
+                    <p class="text-gray-400">After 14 days, you'll be automatically enrolled in the plan you selected. No surprises - we'll send reminders before charging.</p>
+                </div>
+
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-bold mb-3">Do you offer refunds?</h3>
+                    <p class="text-gray-400">Yes! We offer a 30-day money-back guarantee. If you're not satisfied, we'll refund your payment, no questions asked.</p>
+                </div>
+
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-bold mb-3">What payment methods do you accept?</h3>
+                    <p class="text-gray-400">We accept all major credit cards (Visa, Mastercard, Amex), PayPal, and bank transfers for Enterprise customers.</p>
+                </div>
+
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-bold mb-3">Is there a setup fee?</h3>
+                    <p class="text-gray-400">No! There are no setup fees, hidden costs, or long-term contracts. Pay month-to-month or save 20% with annual billing.</p>
+                </div>
+
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-bold mb-3">Can I get a discount for annual billing?</h3>
+                    <p class="text-gray-400">Yes! Annual plans save you 20%. That's like getting 2.4 months free!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="cta" class="py-24 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">Ready to Get Started?</h2>
+            <p class="text-xl text-gray-400 mb-10">Join thousands of creators who've transformed their workflow with snoolink.</p>
+            <button class="bg-snoolink-purple px-10 py-5 rounded-full font-bold text-lg hover:scale-105 transition transform shadow-2xl hover:shadow-snoolink-purple/50">
+                Start Your Free Trial
+            </button>
+            <p class="text-gray-500 mt-6 text-sm">No credit card required • 14-day free trial • Cancel anytime</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 py-12 px-6">
+        <div class="max-w-7xl mx-auto text-center">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                <span class="text-2xl font-bold">snoolink</span>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">© 2025 snoolink AI. All rights reserved.</p>
+            <div class="flex justify-center space-x-6">
+                <a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy</a>
+                <a href="terms.html" class="text-gray-400 hover:text-white transition">Terms</a>
+                <a href="contact.html" class="text-gray-400 hover:text-white transition">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let isYearly = false;
+
+        function toggleBilling() {
+            isYearly = !isYearly;
+            const circle = document.getElementById('toggleCircle');
+            const monthlyLabel = document.getElementById('monthlyLabel');
+            const yearlyLabel = document.getElementById('yearlyLabel');
+            const starterPrice = document.getElementById('starterPrice');
+            const proPrice = document.getElementById('proPrice');
+
+            if (isYearly) {
+                circle.style.transform = 'translateX(24px)';
+                circle.style.backgroundColor = '#5D1EF4';
+                monthlyLabel.classList.add('text-gray-400');
+                monthlyLabel.classList.remove('font-semibold');
+                yearlyLabel.classList.remove('text-gray-400');
+                yearlyLabel.classList.add('font-semibold');
+                starterPrice.textContent = '23';
+                proPrice.textContent = '63';
+            } else {
+                circle.style.transform = 'translateX(0)';
+                circle.style.backgroundColor = 'white';
+                monthlyLabel.classList.remove('text-gray-400');
+                monthlyLabel.classList.add('font-semibold');
+                yearlyLabel.classList.add('text-gray-400');
+                yearlyLabel.classList.remove('font-semibold');
+                starterPrice.textContent = '29';
+                proPrice.textContent = '79';
+            }
+        }
+
+        function calculateROI() {
+            const hours = document.getElementById('hoursSlider').value;
+            const rate = document.getElementById('rateSlider').value;
+
+            document.getElementById('hoursDisplay').textContent = hours;
+            document.getElementById('rateDisplay').textContent = rate;
+
+            // Assume 75% time savings with snoolink
+            const timeSaved = Math.round(hours * 0.75 * 4); // per month
+            const moneySaved = Math.round(timeSaved * rate);
+            const annualSaved = moneySaved * 12;
+            const roiPercent = Math.round((annualSaved / 948 - 1) * 100);
+
+            document.getElementById('timeSaved').textContent = timeSaved;
+            document.getElementById('moneySaved').textContent = moneySaved.toLocaleString();
+            document.getElementById('annualSaved').textContent = annualSaved.toLocaleString();
+            document.getElementById('roiPercent').textContent = roiPercent.toLocaleString();
+        }
+
+        // Initialize calculator
+        calculateROI();
+    </script>
+</body>
+</html>

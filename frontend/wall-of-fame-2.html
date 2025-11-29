@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Snoolink — Wall of Fame</title>
+  <meta name="description" content="Creators Who Trust Snoolink — Wall of Fame" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+
+  <!-- Tailwind CDN (for quick preview). For production compile Tailwind. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            snoolink: { purple: '#5D16EB' }
+          },
+          boxShadow: {
+            'snoolink-glow': '0 10px 30px rgba(93,22,235,0.18)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* small helpers */
+    .card-tilt { transform-style: preserve-3d; transition: transform 240ms cubic-bezier(.2,.9,.3,1), box-shadow 240ms; will-change: transform; }
+    .card-tilt .card-inner { transform: translateZ(24px); }
+    .glow { box-shadow: 0 10px 30px rgba(93,22,235,0.16); }
+    /* entry animation controlled via observer toggling .is-visible */
+    .fade-in-up { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+    .fade-in-up.is-visible { opacity: 1; transform: translateY(0); }
+    /* subtle hover ring */
+    .ring-purple:before {
+      content: '';
+      position: absolute; inset: -8px;
+      border-radius: 16px;
+      background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(93,22,235,0.06), transparent 20%);
+      pointer-events: none;
+      transition: opacity .2s;
+      opacity: 0;
+    }
+    .card-tilt:hover .ring-purple:before { opacity: 1; }
+    /* horizontal ribbon */
+    .ribbon { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+    .ribbon::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 antialiased">
+
+  <main class="max-w-7xl mx-auto px-6 py-12">
+    <header class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-4">
+        <!-- Replace with your full logo -->
+        <img src="/assets/full_logo-white.png" alt="Snoolink" class="h-10">
+        <div>
+          <h1 class="text-2xl font-extrabold">Creators Who Trust Snoolink</h1>
+          <p class="text-sm text-slate-400">A growing wall of influencers, artists, and creators who scale their social presence with us.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="downloadCsvBtn" class="px-4 py-2 rounded-lg bg-snoolink-purple text-white text-sm shadow-snoolink-glow hover:scale-105 transition">Download CSV</button>
+        <label class="flex items-center gap-2 text-sm text-slate-300">
+          <input id="autoplayToggle" type="checkbox" class="h-4 w-4" />
+          Autoplay ribbon
+        </label>
+      </div>
+    </header>
+
+    <!-- ribbon: horizontally scrollable on wide screens, stacked grid on small screens -->
+    <section aria-label="Wall of Fame" class="ribbon-wrapper">
+      <div id="ribbon" class="ribbon flex gap-6 overflow-x-auto snap-x py-6">
+        <!-- Cards injected here -->
+      </div>
+    </section>
+
+    <!-- fallback grid for narrow screens (optional) -->
+    <section id="grid" class="mt-12 hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-8"></section>
+  </main>
+
+  <template id="cardTemplate">
+    <article class="card-tilt relative w-72 min-w-[18rem] snap-start rounded-2xl bg-gradient-to-b from-white/5 to-white/3 border border-white/6 p-4 ring-purple">
+      <div class="card-inner rounded-xl overflow-hidden bg-slate-800 relative">
+        <img class="profile w-full h-52 object-cover block" alt="profile">
+        <div class="p-4">
+          <div class="flex items-center gap-3">
+            <img class="avatar w-12 h-12 rounded-full object-cover border-2 border-white/10" alt="avatar">
+            <div class="flex-1">
+              <div class="name font-semibold leading-tight text-slate-100"></div>
+              <a class="username text-sm text-slate-400 hover:text-white" target="_blank" rel="noopener"></a>
+            </div>
+          </div>
+          <p class="testimonial mt-3 text-slate-300 text-sm line-clamp-3"></p>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script>
+  /*******************************
+   * Dummy CSV data (you can swap)
+   *******************************/
+  const csvData = `name,instagram_username,instagram_url,profile_image_url,testimonial
+Aisha Rivera,aishaariv,https://instagram.com/aishaariv,https://images.unsplash.com/photo-1545996124-3a70bc3a4f59?q=80&w=400&auto=format&fit=crop,"Snoolink found my best shots in minutes — absolute time saver!"
+Marco Pereira,marcop,https://instagram.com/marcop,https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop,"Their automation helped me gain 20% more genuine followers."
+Nora Lee,noralee.create,https://instagram.com/noralee.create,https://images.unsplash.com/photo-1545996124-3a70bc3a4f60?q=80&w=400&auto=format&fit=crop,"Love the AI aesthetic scoring — it improved my feed instantly."
+Sam Torres,sam.torres,https://instagram.com/sam.torres,https://images.unsplash.com/photo-1545996124-3a70bc3a4f61?q=80&w=400&auto=format&fit=crop,"The scheduling + DM templates are insanely good."
+Luna Vega,luna.vega,https://instagram.com/luna.vega,https://images.unsplash.com/photo-1545996124-3a70bc3a4f62?q=80&w=400&auto=format&fit=crop,"Saved hours each week with smart cleanup & tagging."
+Ethan Boyd,ethan.boyd,https://instagram.com/ethan.boyd,https://images.unsplash.com/photo-1545996124-3a70bc3a4f63?q=80&w=400&auto=format&fit=crop,"Great tool for agency workflows — scalable and reliable."
+Maya Patel,maya.patel,https://instagram.com/maya.patel,https://images.unsplash.com/photo-1545996124-3a70bc3a4f64?q=80&w=400&auto=format&fit=crop,"The insights dashboard helped optimize posting times. Love it!"
+Jordan Blake,jordanblake,https://instagram.com/jordanblake,https://images.unsplash.com/photo-1545996124-3a70bc3a4f65?q=80&w=400&auto=format&fit=crop,"Worth every penny for a growing creator."
+Rhea Kumar,rhea.k,https://instagram.com/rhea.k,https://images.unsplash.com/photo-1545996124-3a70bc3a4f66?q=80&w=400&auto=format&fit=crop,"Intuitive and fast — the search is magical."
+Noah Green,noahgreen,https://instagram.com/noahgreen,https://images.unsplash.com/photo-1545996124-3a70bc3a4f67?q=80&w=400&auto=format&fit=crop,"Saved me from hours of manual cleanup."
+Sofia Reyes,sofia.reyes,https://instagram.com/sofia.reyes,https://images.unsplash.com/photo-1545996124-3a70bc3a4f68?q=80&w=400&auto=format&fit=crop,"The creative suggestions are on point."
+Team Alta,team.alta,https://instagram.com/team.alta,https://images.unsplash.com/photo-1545996124-3a70bc3a4f69?q=80&w=400&auto=format&fit=crop,"We scaled our content ops using Snoolink."`;
+
+  /*******************************
+   * Basic CSV parsing
+   *******************************/
+  function parseCSV(csv) {
+    const lines = csv.split(/\r?\n/).filter(Boolean);
+    if (!lines.length) return [];
+    const headers = lines[0].split(',').map(h => h.trim());
+    const rows = lines.slice(1).map(line => {
+      // simple CSV safe-split: assumes no embedded newlines/commas inside quotes for this dummy dataset
+      // For production, use PapaParse or a robust CSV parser.
+      const parts = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(s => s.trim().replace(/^"|"$/g, ''));
+      const obj = {};
+      headers.forEach((h,i) => obj[h] = parts[i] ?? '');
+      return obj;
+    });
+    return rows;
+  }
+
+  /*******************************
+   * Render logic
+   *******************************/
+  const data = parseCSV(csvData);
+  const ribbon = document.getElementById('ribbon');
+  const grid = document.getElementById('grid');
+  const tpl = document.getElementById('cardTemplate');
+
+  // fallback image if profile fails
+  const FALLBACK_IMG = 'https://placehold.co/800x600?text=Snoolink+Creator';
+
+  function makeCard(item) {
+    const node = tpl.content.cloneNode(true);
+    const article = node.querySelector('article');
+    const profileImg = node.querySelector('.profile');
+    const avatar = node.querySelector('.avatar');
+    const nameEl = node.querySelector('.name');
+    const usernameEl = node.querySelector('.username');
+    const testimonialEl = node.querySelector('.testimonial');
+
+    // populate
+    profileImg.src = item.profile_image_url || FALLBACK_IMG;
+    avatar.src = item.profile_image_url || FALLBACK_IMG;
+    profileImg.onerror = () => profileImg.src = FALLBACK_IMG;
+    avatar.onerror = () => avatar.src = FALLBACK_IMG;
+
+    nameEl.textContent = item.name || item.instagram_username;
+    usernameEl.textContent = '@' + (item.instagram_username || '');
+    usernameEl.href = item.instagram_url || '#';
+    testimonialEl.textContent = item.testimonial || '';
+
+    // click to open instagram in new tab
+    article.style.cursor = 'pointer';
+    article.addEventListener('click', (e) => {
+      // avoid clicks on links inside
+      if (e.target.tagName.toLowerCase() === 'a') return;
+      const url = item.instagram_url || (`https://instagram.com/${item.instagram_username}`);
+      window.open(url, '_blank', 'noopener');
+    });
+
+    // tilt effect
+    article.addEventListener('mousemove', (ev) => {
+      const rect = article.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const cx = rect.width/2;
+      const cy = rect.height/2;
+      const dx = (x - cx) / cx;
+      const dy = (y - cy) / cy;
+      const tiltX = (dy * 6).toFixed(2);
+      const tiltY = (dx * -6).toFixed(2);
+      article.style.transform = `perspective(800px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.02)`;
+      article.style.setProperty('--mx', (x/rect.width*100)+'%');
+      article.style.setProperty('--my', (y/rect.height*100)+'%');
+      article.classList.add('glow');
+    });
+    article.addEventListener('mouseleave', () => {
+      article.style.transform = '';
+      article.classList.remove('glow');
+    });
+
+    // IntersectionObserver animate-in
+    article.classList.add('fade-in-up');
+    return node;
+  }
+
+  // render into ribbon & grid
+  data.forEach(item => {
+    const cardNode = makeCard(item);
+    // ribbon
+    ribbon.appendChild(cardNode.cloneNode(true));
+    // grid
+    const gridNode = makeCard(item);
+    grid.appendChild(gridNode);
+  });
+
+  // show grid on small screens, hide ribbon
+  function updateLayout() {
+    if (window.innerWidth < 640) {
+      ribbon.style.display = 'none';
+      grid.classList.remove('hidden');
+    } else {
+      ribbon.style.display = 'flex';
+      grid.classList.add('hidden');
+    }
+  }
+  updateLayout();
+  window.addEventListener('resize', updateLayout);
+
+  // IntersectionObserver to toggle visible class for entry animation
+  const observer = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (e.isIntersecting) e.target.classList.add('is-visible');
+    }
+  }, { threshold: 0.2 });
+
+  document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+
+  /*******************************
+   * Autoplay ribbon: smooth scroll
+   *******************************/
+  let autoplay = false;
+  let autoplayInterval = null;
+  const autoplayToggle = document.getElementById('autoplayToggle');
+
+  function startAutoplay() {
+    if (autoplayInterval) clearInterval(autoplayInterval);
+    autoplayInterval = setInterval(() => {
+      if (!ribbon || ribbon.scrollWidth <= ribbon.clientWidth) return;
+      // scroll by card width
+      ribbon.scrollBy({ left: 320, behavior: 'smooth' });
+      // if we reached end, go back
+      if (ribbon.scrollLeft + ribbon.clientWidth >= ribbon.scrollWidth - 10) {
+        // rewind smoothly
+        ribbon.scrollTo({ left: 0, behavior: 'smooth' });
+      }
+    }, 2600);
+  }
+  function stopAutoplay() {
+    if (autoplayInterval) { clearInterval(autoplayInterval); autoplayInterval = null; }
+  }
+  autoplayToggle.addEventListener('change', (e) => {
+    autoplay = e.target.checked;
+    if (autoplay && window.innerWidth >= 640) startAutoplay(); else stopAutoplay();
+  });
+
+  // start autoplay only if toggle enabled and wide screen
+  window.addEventListener('resize', () => {
+    if (autoplay && window.innerWidth >= 640) startAutoplay(); else stopAutoplay();
+  });
+
+  /*******************************
+   * CSV Download functionality
+   *******************************/
+  document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'snoolink_influencers.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  </script>
+</body>
+</html>

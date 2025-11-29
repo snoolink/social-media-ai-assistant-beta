@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - snoolink</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/YC8Z9Xo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'snoolink-purple': '#5D1EF4',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .gradient-animate { 
+            background-size: 200% 200%;
+            animation: gradient 8s ease infinite;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-3">
+                <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                <span class="text-2xl font-bold">snoolink</span>
+            </a>
+            <div class="hidden md:flex space-x-8">
+                <a href="index.html#features" class="hover:text-purple-400 transition">Features</a>
+                <a href="pricing.html" class="hover:text-purple-400 transition">Pricing</a>
+                <a href="wall-of-fame.html" class="hover:text-purple-400 transition">Wall of Fame</a>
+                <a href="about.html" class="text-snoolink-purple font-semibold">About</a>
+                <a href="contact.html" class="hover:text-purple-400 transition">Contact</a>
+            </div>
+            <a href="#cta" class="bg-snoolink-purple px-6 py-2 rounded-full font-semibold hover:scale-105 transition transform shadow-lg hover:shadow-snoolink-purple/50">
+                Get Started
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-snoolink-purple/40 via-gray-900 to-snoolink-purple/20 gradient-animate"></div>
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-snoolink-purple rounded-full filter blur-3xl animate-float"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 bg-snoolink-purple rounded-full filter blur-3xl animate-float" style="animation-delay: 2s;"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto text-center">
+            <div class="inline-block mb-6 px-4 py-2 bg-snoolink-purple/20 rounded-full border border-snoolink-purple/30">
+                <span class="text-purple-300">🚀 Our Story</span>
+            </div>
+            
+            <h1 class="text-6xl md:text-7xl font-bold mb-6 leading-tight">
+                Built by Creators,<br/>
+                <span class="bg-gradient-to-r from-snoolink-purple to-purple-400 bg-clip-text text-transparent">For Creators</span>
+            </h1>
+            
+            <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
+                We're on a mission to give every content creator the superpowers they need to focus on what they do best: creating.
+            </p>
+        </div>
+    </section>
+
+    <!-- Origin Story -->
+    <section class="py-24 px-6">
+        <div class="max-w-5xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-16 items-center mb-24">
+                <div>
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6">The Problem We Saw</h2>
+                    <p class="text-gray-300 text-lg mb-4">
+                        In 2023, our founder Sarah was a full-time travel influencer managing over 50,000 photos and videos across multiple platforms. She spent 15+ hours every week just organizing content, finding the right shots, and manually engaging with followers.
+                    </p>
+                    <p class="text-gray-300 text-lg mb-4">
+                        "I was spending more time managing content than creating it," she recalls. "I knew there had to be a better way."
+                    </p>
+                    <p class="text-gray-300 text-lg">
+                        That frustration sparked an idea: what if AI could handle all the tedious parts of being a creator, so you could focus purely on your craft?
+                    </p>
+                </div>
+                <div class="glass p-8 rounded-2xl">
+                    <div class="text-6xl mb-6 text-center">📸</div>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-snoolink-purple/20 rounded-full flex items-center justify-center font-bold text-2xl">15</div>
+                            <div>
+                                <p class="font-bold">Hours per week</p>
+                                <p class="text-sm text-gray-400">wasted on content management</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-snoolink-purple/20 rounded-full flex items-center justify-center font-bold text-2xl">50K</div>
+                            <div>
+                                <p class="font-bold">Files to organize</p>
+                                <p class="text-sm text-gray-400">scattered across platforms</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-snoolink-purple/20 rounded-full flex items-center justify-center font-bold text-2xl">0</div>
+                            <div>
+                                <p class="font-bold">Smart solutions</p>
+                                <p class="text-sm text-gray-400">available at the time</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mission & Vision -->
+    <section class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Our Mission</h2>
+                <p class="text-2xl text-gray-300 max-w-4xl mx-auto">
+                    To democratize AI-powered content management and automation, making professional-grade tools accessible to every creator—from solo influencers to global agencies.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass p-8 rounded-2xl text-center">
+                    <div class="text-5xl mb-4">🎯</div>
+                    <h3 class="text-2xl font-bold mb-4">Creator-First</h3>
+                    <p class="text-gray-400">Every feature we build starts with one question: "Does this help creators create more and manage less?"</p>
+                </div>
+                <div class="glass p-8 rounded-2xl text-center">
+                    <div class="text-5xl mb-4">🤖</div>
+                    <h3 class="text-2xl font-bold mb-4">AI-Powered</h3>
+                    <p class="text-gray-400">We leverage cutting-edge AI to automate the boring stuff so you can focus on your craft.</p>
+                </div>
+                <div class="glass p-8 rounded-2xl text-center">
+                    <div class="text-5xl mb-4">🌍</div>
+                    <h3 class="text-2xl font-bold mb-4">Globally Accessible</h3>
+                    <p class="text-gray-400">From solo creators to enterprise teams, our tools scale with your ambitions.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Company Values -->
+    <section class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Our Values</h2>
+                <p class="text-xl text-gray-400">The principles that guide everything we do</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-snoolink-purple rounded-full flex items-center justify-center flex-shrink-0 text-2xl">💡</div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-3">Innovation First</h3>
+                            <p class="text-gray-400">We're not satisfied with "good enough." We constantly push boundaries to deliver tools that feel like magic.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-snoolink-purple rounded-full flex items-center justify-center flex-shrink-0 text-2xl">🤝</div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-3">Creator Partnership</h3>
+                            <p class="text-gray-400">Our users aren't just customers—they're partners. We build features based on real creator feedback.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-snoolink-purple rounded-full flex items-center justify-center flex-shrink-0 text-2xl">🔒</div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-3">Privacy & Security</h3>
+                            <p class="text-gray-400">Your content is your livelihood. We treat it with the highest level of security and respect.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-snoolink-purple rounded-full flex items-center justify-center flex-shrink-0 text-2xl">⚡</div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-3">Speed & Efficiency</h3>
+                            <p class="text-gray-400">Time is your most valuable asset. We obsess over making snoolink fast and intuitive.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-snoolink-purple rounded-full flex items-center justify-center flex-shrink-0 text-2xl">🎨</div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-3">Design Excellence</h3>
+                            <p class="text-gray-400">Beautiful, intuitive interfaces aren't optional—they're essential for creative tools.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-snoolink-purple rounded-full flex items-center justify-center flex-shrink-0 text-2xl">🌱</div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-3">Sustainable Growth</h3>
+                            <p class="text-gray-400">We're building for the long term—creating lasting value for creators and our team.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Milestones -->
+    <section class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Our Journey</h2>
+                <p class="text-xl text-gray-400">Key milestones in the snoolink story</p>
+            </div>
+
+            <div class="space-y-8">
+                <div class="flex gap-8 items-start">
+                    <div class="flex-shrink-0 w-32 text-right">
+                        <div class="text-3xl font-bold text-snoolink-purple">2023</div>
+                        <div class="text-sm text-gray-400">Q1</div>
+                    </div>
+                    <div class="glass p-6 rounded-xl flex-1">
+                        <h3 class="text-xl font-bold mb-2">🚀 Company Founded</h3>
+                        <p class="text-gray-400">Sarah and Jordan team up to solve the content management crisis for creators.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-8 items-start">
+                    <div class="flex-shrink-0 w-32 text-right">
+                        <div class="text-3xl font-bold text-snoolink-purple">2023</div>
+                        <div class="text-sm text-gray-400">Q3</div>
+                    </div>
+                    <div class="glass p-6 rounded-xl flex-1">
+                        <h3 class="text-xl font-bold mb-2">🎯 Beta Launch</h3>
+                        <p class="text-gray-400">50 hand-picked creators test the first version. Feedback is overwhelmingly positive.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-8 items-start">
+                    <div class="flex-shrink-0 w-32 text-right">
+                        <div class="text-3xl font-bold text-snoolink-purple">2024</div>
+                        <div class="text-sm text-gray-400">Q1</div>
+                    </div>
+                    <div class="glass p-6 rounded-xl flex-1">
+                        <h3 class="text-xl font-bold mb-2">🌟 Public Launch</h3>
+                        <p class="text-gray-400">snoolink goes live to the world. We hit 1,000 users in the first month.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-8 items-start">
+                    <div class="flex-shrink-0 w-32 text-right">
+                        <div class="text-3xl font-bold text-snoolink-purple">2024</div>
+                        <div class="text-sm text-gray-400">Q3</div>
+                    </div>
+                    <div class="glass p-6 rounded-xl flex-1">
+                        <h3 class="text-xl font-bold mb-2">💰 Seed Funding</h3>
+                        <p class="text-gray-400">Raised $2M to accelerate product development and expand the team.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-8 items-start">
+                    <div class="flex-shrink-0 w-32 text-right">
+                        <div class="text-3xl font-bold text-snoolink-purple">2024</div>
+                        <div class="text-sm text-gray-400">Q4</div>
+                    </div>
+                    <div class="glass p-6 rounded-xl flex-1">
+                        <h3 class="text-xl font-bold mb-2">🎉 10K Creators</h3>
+                        <p class="text-gray-400">Crossed 10,000 active creators managing over 100M files on snoolink.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-8 items-start">
+                    <div class="flex-shrink-0 w-32 text-right">
+                        <div class="text-3xl font-bold text-snoolink-purple">2025</div>
+                        <div class="text-sm text-gray-400">Q1</div>
+                    </div>
+                    <div class="glass p-6 rounded-xl flex-1 border-2 border-snoolink-purple">
+                        <h3 class="text-xl font-bold mb-2">🚀 AI 2.0 Launch</h3>
+                        <p class="text-gray-400">Launched next-gen AI features including predictive content scoring and advanced automation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Preview -->
+    <section class="py-24 px-6">
+        <div class="max-w-7xl mx-auto text-center">
+            <h2 class="text-5xl font-bold mb-6">Meet the Team</h2>
+            <p class="text-xl text-gray-400 mb-12">The people building the future of content creation</p>
+            <a href="index.html#team" class="inline-flex items-center gap-2 bg-snoolink-purple px-8 py-4 rounded-full font-semibold text-lg hover:scale-105 transition transform shadow-lg hover:shadow-snoolink-purple/50">
+                <span>Meet Our Team</span>
+                <span>→</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="cta" class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">Join Our Mission</h2>
+            <p class="text-xl text-gray-400 mb-10">Help us empower creators worldwide. Start your journey today.</p>
+            <button class="bg-snoolink-purple px-10 py-5 rounded-full font-bold text-lg hover:scale-105 transition transform shadow-2xl hover:shadow-snoolink-purple/50">
+                Start Your Free Trial
+            </button>
+            <p class="text-gray-500 mt-6 text-sm">No credit card required • 14-day free trial</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 py-12 px-6">
+        <div class="max-w-7xl mx-auto text-center">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                <span class="text-2xl font-bold">snoolink</span>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">© 2025 snoolink AI. All rights reserved.</p>
+            <div class="flex justify-center space-x-6">
+                <a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy</a>
+                <a href="terms.html" class="text-gray-400 hover:text-white transition">Terms</a>
+                <a href="contact.html" class="text-gray-400 hover:text-white transition">Contact</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

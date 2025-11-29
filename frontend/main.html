@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>snoolink - Your AI Social Media Assistant</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/YC8Z9Xo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'snoolink-purple': '#5D1EF4',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .gradient-animate { 
+            background-size: 200% 200%;
+            animation: gradient 8s ease infinite;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                <span class="text-2xl font-bold">snoolink</span>
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#features" class="hover:text-purple-400 transition">Features</a>
+                <a href="#how-it-works" class="hover:text-purple-400 transition">How It Works</a>
+                <a href="#pricing" class="hover:text-purple-400 transition">Pricing</a>
+                <a href="#team" class="hover:text-purple-400 transition">Team</a>
+            </div>
+            <button class="bg-snoolink-purple px-6 py-2 rounded-full font-semibold hover:scale-105 transition transform shadow-lg hover:shadow-snoolink-purple/50">
+                Get Started
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-snoolink-purple/40 via-gray-900 to-snoolink-purple/20 gradient-animate"></div>
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-snoolink-purple rounded-full filter blur-3xl animate-float"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 bg-snoolink-purple rounded-full filter blur-3xl animate-float" style="animation-delay: 2s;"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto text-center">
+            <div class="inline-block mb-6 px-4 py-2 bg-snoolink-purple/20 rounded-full border border-snoolink-purple/30">
+                <span class="text-purple-300">✨ Powered by Advanced AI</span>
+            </div>
+            
+            <h1 class="text-6xl md:text-7xl font-bold mb-6 leading-tight">
+                Less Scrolling.<br/>
+                <span class="bg-gradient-to-r from-snoolink-purple to-purple-400 bg-clip-text text-transparent">More Creating.</span>
+            </h1>
+            
+            <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
+                Meet <span class="font-bold text-snoolink-purple">suzy</span>, your personal AI assistant that analyzes, organizes, and automates your social media workflow — so you can focus on what matters most.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button class="bg-snoolink-purple px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition transform shadow-2xl hover:shadow-snoolink-purple/50">
+                    Start Free Trial
+                </button>
+                <button class="glass px-8 py-4 rounded-full font-semibold text-lg hover:bg-white/20 transition">
+                    Watch Demo →
+                </button>
+            </div>
+            
+            <div class="mt-16 flex justify-center gap-8 text-sm text-gray-400">
+                <div>✓ No credit card required</div>
+                <div>✓ 14-day free trial</div>
+                <div>✓ Cancel anytime</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof -->
+    <section class="py-12 border-y border-gray-800">
+        <div class="max-w-7xl mx-auto px-6">
+            <p class="text-center text-gray-400 mb-8">Trusted by creators and brands worldwide</p>
+            <div class="flex flex-wrap justify-center items-center gap-12 opacity-60">
+                <div class="text-2xl font-bold">CREATOR CO.</div>
+                <div class="text-2xl font-bold">INFLUENCER HUB</div>
+                <div class="text-2xl font-bold">SOCIAL STUDIO</div>
+                <div class="text-2xl font-bold">MEDIA LABS</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Value Proposition -->
+    <section class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Why Creators Love snoolink</h2>
+                <p class="text-xl text-gray-400 max-w-2xl mx-auto">Transform your social media workflow with AI that understands your content and automates the boring stuff.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform">
+                    <div class="text-5xl mb-4">🔍</div>
+                    <h3 class="text-2xl font-bold mb-4">Intelligent Search</h3>
+                    <p class="text-gray-400">Find any photo or video instantly using natural language. "Show me clips where I'm wearing sunglasses near a skyline."</p>
+                </div>
+                
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform border border-snoolink-purple/30">
+                    <div class="text-5xl mb-4">🧹</div>
+                    <h3 class="text-2xl font-bold mb-4">Smart Organization</h3>
+                    <p class="text-gray-400">Automatically detect and remove duplicates, blurry shots, and low-quality content to keep your library clean.</p>
+                </div>
+                
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform">
+                    <div class="text-5xl mb-4">⚡</div>
+                    <h3 class="text-2xl font-bold mb-4">Workflow Automation</h3>
+                    <p class="text-gray-400">Automate following, unfollowing, messaging, and engagement — safely and intelligently.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Powerful Features, Zero Hassle</h2>
+                <p class="text-xl text-gray-400">Everything you need to manage content and grow your audience.</p>
+            </div>
+            
+            <div class="grid lg:grid-cols-2 gap-12 items-center mb-16">
+                <div>
+                    <div class="inline-block px-4 py-2 bg-snoolink-purple/20 rounded-full border border-snoolink-purple/30 mb-6">
+                        <span class="text-purple-300">AI-Powered Vision</span>
+                    </div>
+                    <h3 class="text-4xl font-bold mb-6">Search Your Content Like Never Before</h3>
+                    <p class="text-gray-400 text-lg mb-6">Using advanced computer vision models like CLIP and BLIP, suzy understands the context of your images and videos. Search semantically through thousands of files in seconds.</p>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3">✓</span>
+                            <span>Detect objects, faces, emotions, and environments</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3">✓</span>
+                            <span>Natural language queries that actually work</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3">✓</span>
+                            <span>Lightning-fast similarity search with FAISS</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="glass p-8 rounded-2xl h-96 flex items-center justify-center text-6xl">
+                    🎨📸🎬
+                </div>
+            </div>
+            
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div class="glass p-8 rounded-2xl h-96 flex items-center justify-center text-6xl order-2 lg:order-1">
+                    🤖💬📱
+                </div>
+                <div class="order-1 lg:order-2">
+                    <div class="inline-block px-4 py-2 bg-snoolink-purple/20 rounded-full border border-snoolink-purple/30 mb-6">
+                        <span class="text-purple-300">Growth Automation</span>
+                    </div>
+                    <h3 class="text-4xl font-bold mb-6">Grow Your Audience on Autopilot</h3>
+                    <p class="text-gray-400 text-lg mb-6">Let suzy handle the repetitive tasks — follow relevant accounts, send personalized DMs, and engage with your target audience while you create.</p>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3">✓</span>
+                            <span>Smart follow/unfollow based on engagement patterns</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3">✓</span>
+                            <span>AI-written DM templates that feel personal</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-snoolink-purple mr-3">✓</span>
+                            <span>Safe, platform-compliant automation</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Get Started in Minutes</h2>
+                <p class="text-xl text-gray-400">Simple setup, powerful results.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-snoolink-purple rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-snoolink-purple/50">1</div>
+                    <h4 class="text-xl font-bold mb-2">Upload Content</h4>
+                    <p class="text-gray-400">Connect your cloud storage or upload local folders</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-snoolink-purple rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-snoolink-purple/50">2</div>
+                    <h4 class="text-xl font-bold mb-2">AI Analyzes</h4>
+                    <p class="text-gray-400">suzy automatically tags and organizes everything</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-snoolink-purple rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-snoolink-purple/50">3</div>
+                    <h4 class="text-xl font-bold mb-2">Automate Tasks</h4>
+                    <p class="text-gray-400">Set up your social media automation rules</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-snoolink-purple rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg shadow-snoolink-purple/50">4</div>
+                    <h4 class="text-xl font-bold mb-2">Watch It Grow</h4>
+                    <p class="text-gray-400">Track insights and optimize your strategy</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Loved by Creators Everywhere</h2>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-bold">Sarah Chen</div>
+                            <div class="text-gray-400 text-sm">Fashion Influencer</div>
+                        </div>
+                    </div>
+                    <div class="text-yellow-400 mb-4">★★★★★</div>
+                    <p class="text-gray-300">"snoolink saved me 10 hours a week. The AI search is mind-blowing — I can find any outfit photo instantly!"</p>
+                </div>
+                
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-bold">Marcus Rodriguez</div>
+                            <div class="text-gray-400 text-sm">Travel Creator</div>
+                        </div>
+                    </div>
+                    <div class="text-yellow-400 mb-4">★★★★★</div>
+                    <p class="text-gray-300">"The automation features are game-changing. My engagement went up 300% while I focused on creating content."</p>
+                </div>
+                
+                <div class="glass p-8 rounded-2xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-bold">Emma Thompson</div>
+                            <div class="text-gray-400 text-sm">Social Media Manager</div>
+                        </div>
+                    </div>
+                    <div class="text-yellow-400 mb-4">★★★★★</div>
+                    <p class="text-gray-300">"Managing 5 client accounts became effortless. The insights dashboard helps me prove ROI to every client."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Simple, Transparent Pricing</h2>
+                <p class="text-xl text-gray-400">Choose the plan that fits your needs. All plans include a 14-day free trial.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform">
+                    <h3 class="text-2xl font-bold mb-2">Starter</h3>
+                    <div class="text-4xl font-bold mb-6">$29<span class="text-lg text-gray-400">/mo</span></div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> 5,000 media files</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> AI search & organization</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> 1 social account</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Basic automation</li>
+                    </ul>
+                    <button class="w-full py-3 border border-snoolink-purple rounded-full hover:bg-snoolink-purple/20 transition">Get Started</button>
+                </div>
+                
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform border-2 border-snoolink-purple relative">
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-snoolink-purple px-4 py-1 rounded-full text-sm font-bold shadow-lg">POPULAR</div>
+                    <h3 class="text-2xl font-bold mb-2">Pro</h3>
+                    <div class="text-4xl font-bold mb-6">$79<span class="text-lg text-gray-400">/mo</span></div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Unlimited media files</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Advanced AI features</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> 5 social accounts</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Full automation suite</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Analytics dashboard</li>
+                    </ul>
+                    <button class="w-full py-3 bg-snoolink-purple rounded-full font-bold hover:scale-105 transition transform shadow-lg hover:shadow-snoolink-purple/50">Get Started</button>
+                </div>
+                
+                <div class="glass p-8 rounded-2xl hover:scale-105 transition transform">
+                    <h3 class="text-2xl font-bold mb-2">Enterprise</h3>
+                    <div class="text-4xl font-bold mb-6">Custom</div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Unlimited everything</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> White-label option</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Priority support</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Custom integrations</li>
+                        <li class="flex items-start"><span class="text-snoolink-purple mr-2">✓</span> Dedicated account manager</li>
+                    </ul>
+                    <button class="w-full py-3 border border-snoolink-purple rounded-full hover:bg-snoolink-purple/20 transition">Contact Sales</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team -->
+    <section id="team" class="py-24 px-6 bg-gray-800/30">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold mb-6">Meet the Team</h2>
+                <p class="text-xl text-gray-400">Built by creators, for creators.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="w-32 h-32 bg-gradient-to-br from-snoolink-purple to-purple-400 rounded-full mx-auto mb-4 shadow-lg shadow-snoolink-purple/30"></div>
+                    <h4 class="text-xl font-bold mb-1">Alex Morgan</h4>
+                    <p class="text-snoolink-purple mb-2">CEO & Co-Founder</p>
+                    <p class="text-gray-400 text-sm">Ex-Instagram, 10+ years in social media</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-32 h-32 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full mx-auto mb-4 shadow-lg shadow-blue-500/30"></div>
+                    <h4 class="text-xl font-bold mb-1">Jordan Lee</h4>
+                    <p class="text-snoolink-purple mb-2">CTO & Co-Founder</p>
+                    <p class="text-gray-400 text-sm">AI/ML expert, formerly at OpenAI</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full mx-auto mb-4 shadow-lg shadow-green-500/30"></div>
+                    <h4 class="text-xl font-bold mb-1">Sam Patel</h4>
+                    <p class="text-snoolink-purple mb-2">Head of Product</p>
+                    <p class="text-gray-400 text-sm">Designer turned PM, UX obsessed</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-32 h-32 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full mx-auto mb-4 shadow-lg shadow-yellow-500/30"></div>
+                    <h4 class="text-xl font-bold mb-1">Riley Quinn</h4>
+                    <p class="text-snoolink-purple mb-2">Head of Community</p>
+                    <p class="text-gray-400 text-sm">Creator with 2M+ followers</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-5xl md:text-6xl font-bold mb-6">Ready to Transform Your Workflow?</h2>
+            <p class="text-xl text-gray-400 mb-10">Join thousands of creators who've reclaimed their time with snoolink.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button class="bg-snoolink-purple px-10 py-5 rounded-full font-bold text-lg hover:scale-105 transition transform shadow-2xl hover:shadow-snoolink-purple/50">
+                    Start Your Free Trial
+                </button>
+                <button class="glass px-10 py-5 rounded-full font-semibold text-lg hover:bg-white/20 transition">
+                    Schedule a Demo
+                </button>
+            </div>
+            <p class="text-gray-500 mt-6 text-sm">No credit card required • 14-day free trial • Cancel anytime</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 py-12 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                        <span class="text-2xl font-bold">snoolink</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">AI-powered social media assistant for the modern creator.</p>
+                </div>
+                
+                <div>
+                    <h5 class="font-bold mb-4">Product</h5>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Features</a></li>
+                        <li><a href="#" class="hover:text-white transition">Pricing</a></li>
+                        <li><a href="#" class="hover:text-white transition">Integrations</a></li>
+                        <li><a href="#" class="hover:text-white transition">Changelog</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h5 class="font-bold mb-4">Company</h5>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">About</a></li>
+                        <li><a href="#" class="hover:text-white transition">Blog</a></li>
+                        <li><a href="#" class="hover:text-white transition">Careers</a></li>
+                        <li><a href="#" class="hover:text-white transition">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h5 class="font-bold mb-4">Legal</h5>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Privacy</a></li>
+                        <li><a href="#" class="hover:text-white transition">Terms</a></li>
+                        <li><a href="#" class="hover:text-white transition">Security</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 text-sm mb-4 md:mb-0">© 2025 snoolink AI. All rights reserved.</p>
+                <div class="flex space-x-6">
+                    <a href="https://twitter.com/suzyai" class="text-gray-400 hover:text-white transition">Twitter</a>
+                    <a href="https://linkedin.com/company/suzyai" class="text-gray-400 hover:text-white transition">LinkedIn</a>
+                    <a href="https://suzy.ai" class="text-gray-400 hover:text-white transition">Website</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wall of Fame - snoolink</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/YC8Z9Xo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'snoolink-purple': '#5D1EF4',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .gradient-animate { 
+            background-size: 200% 200%;
+            animation: gradient 8s ease infinite;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .card-animate {
+            animation: slideUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        .influencer-card {
+            transition: all 0.3s ease;
+        }
+        .influencer-card:hover {
+            transform: translateY(-10px) scale(1.02);
+        }
+        .influencer-card:hover .profile-overlay {
+            opacity: 1;
+        }
+        .profile-overlay {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+    
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-3">
+                <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                <span class="text-2xl font-bold">snoolink</span>
+            </a>
+            <div class="hidden md:flex space-x-8">
+                <a href="index.html#features" class="hover:text-purple-400 transition">Features</a>
+                <a href="index.html#how-it-works" class="hover:text-purple-400 transition">How It Works</a>
+                <a href="index.html#pricing" class="hover:text-purple-400 transition">Pricing</a>
+                <a href="index.html#team" class="hover:text-purple-400 transition">Team</a>
+                <a href="#" class="text-snoolink-purple font-semibold">Wall of Fame</a>
+            </div>
+            <button class="bg-snoolink-purple px-6 py-2 rounded-full font-semibold hover:scale-105 transition transform shadow-lg hover:shadow-snoolink-purple/50">
+                Get Started
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-16 px-6 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-snoolink-purple/40 via-gray-900 to-snoolink-purple/20 gradient-animate"></div>
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-snoolink-purple rounded-full filter blur-3xl animate-float"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 bg-snoolink-purple rounded-full filter blur-3xl animate-float" style="animation-delay: 2s;"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto text-center">
+            <div class="inline-block mb-6 px-4 py-2 bg-snoolink-purple/20 rounded-full border border-snoolink-purple/30">
+                <span class="text-purple-300">🌟 Our Success Stories</span>
+            </div>
+            
+            <h1 class="text-6xl md:text-7xl font-bold mb-6 leading-tight">
+                Wall of <span class="bg-gradient-to-r from-snoolink-purple to-purple-400 bg-clip-text text-transparent">Fame</span>
+            </h1>
+            
+            <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
+                Join thousands of creators and influencers who've transformed their social media game with snoolink
+            </p>
+
+            <div class="flex justify-center gap-8 text-lg">
+                <div class="glass px-6 py-3 rounded-full">
+                    <span class="font-bold text-snoolink-purple" id="totalInfluencers">0</span> Influencers
+                </div>
+                <div class="glass px-6 py-3 rounded-full">
+                    <span class="font-bold text-snoolink-purple">10M+</span> Combined Followers
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="py-8 px-6 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto flex flex-wrap gap-4 justify-center">
+            <button onclick="filterInfluencers('all')" class="filter-btn bg-snoolink-purple px-6 py-2 rounded-full font-semibold hover:scale-105 transition transform" data-filter="all">
+                All
+            </button>
+            <button onclick="filterInfluencers('Fashion')" class="filter-btn glass px-6 py-2 rounded-full font-semibold hover:bg-white/20 transition" data-filter="Fashion">
+                Fashion
+            </button>
+            <button onclick="filterInfluencers('Travel')" class="filter-btn glass px-6 py-2 rounded-full font-semibold hover:bg-white/20 transition" data-filter="Travel">
+                Travel
+            </button>
+            <button onclick="filterInfluencers('Fitness')" class="filter-btn glass px-6 py-2 rounded-full font-semibold hover:bg-white/20 transition" data-filter="Fitness">
+                Fitness
+            </button>
+            <button onclick="filterInfluencers('Food')" class="filter-btn glass px-6 py-2 rounded-full font-semibold hover:bg-white/20 transition" data-filter="Food">
+                Food
+            </button>
+            <button onclick="filterInfluencers('Tech')" class="filter-btn glass px-6 py-2 rounded-full font-semibold hover:bg-white/20 transition" data-filter="Tech">
+                Tech
+            </button>
+            <button onclick="filterInfluencers('Lifestyle')" class="filter-btn glass px-6 py-2 rounded-full font-semibold hover:bg-white/20 transition" data-filter="Lifestyle">
+                Lifestyle
+            </button>
+        </div>
+    </section>
+
+    <!-- Wall of Fame Grid -->
+    <section class="py-16 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div id="influencersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+            
+            <div id="loadingState" class="text-center py-20">
+                <div class="inline-block w-12 h-12 border-4 border-snoolink-purple border-t-transparent rounded-full animate-spin"></div>
+                <p class="mt-4 text-gray-400">Loading amazing creators...</p>
+            </div>
+
+            <div id="noResults" class="text-center py-20 hidden">
+                <div class="text-6xl mb-4">🔍</div>
+                <p class="text-xl text-gray-400">No influencers found in this category</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 px-6 border-t border-gray-800">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">Want to Join Our Wall of Fame?</h2>
+            <p class="text-xl text-gray-400 mb-10">Start using snoolink today and see your growth skyrocket!</p>
+            <button class="bg-snoolink-purple px-10 py-5 rounded-full font-bold text-lg hover:scale-105 transition transform shadow-2xl hover:shadow-snoolink-purple/50">
+                Start Your Free Trial
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 py-12 px-6">
+        <div class="max-w-7xl mx-auto text-center">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <img src="https://i.imgur.com/YC8Z9Xo.png" alt="snoolink logo" class="h-10 w-10">
+                <span class="text-2xl font-bold">snoolink</span>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">© 2025 snoolink AI. All rights reserved.</p>
+            <div class="flex justify-center space-x-6">
+                <a href="#" class="text-gray-400 hover:text-white transition">Twitter</a>
+                <a href="#" class="text-gray-400 hover:text-white transition">LinkedIn</a>
+                <a href="#" class="text-gray-400 hover:text-white transition">Instagram</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let allInfluencers = [];
+        let currentFilter = 'all';
+
+        // Fallback CSV data (embedded)
+        const fallbackCSV = `name,username,followers,category,testimonial,profile_image,instagram_url
+Sarah Chen,sarahfashion,850000,Fashion,"snoolink transformed my content workflow! The AI search finds the perfect outfit photos in seconds. My engagement is up 250%!",https://i.pravatar.cc/300?img=1,https://instagram.com/sarahfashion
+Marcus Rodriguez,wanderlust_marcus,1200000,Travel,"As a travel creator with 10K+ photos, snoolink's organization is a lifesaver. The automation helps me grow while I explore!",https://i.pravatar.cc/300?img=13,https://instagram.com/wanderlust_marcus
+Emma Thompson,emmalifestyle,650000,Lifestyle,"The smart content curation is incredible. snoolink knows exactly which posts will perform best. Game changer!",https://i.pravatar.cc/300?img=5,https://instagram.com/emmalifestyle
+Jake Morrison,fitwithjake,920000,Fitness,"Managing my fitness content library was overwhelming until snoolink. Now everything is organized and accessible instantly!",https://i.pravatar.cc/300?img=12,https://instagram.com/fitwithjake
+Priya Sharma,foodie_priya,780000,Food,"The AI understands food photography! It helps me find similar dishes and styles. My sponsored content workflow is seamless now.",https://i.pravatar.cc/300?img=9,https://instagram.com/foodie_priya
+Alex Park,techwithalex,1500000,Tech,"As a tech reviewer, I have thousands of product shots. snoolink's search is like magic - 'find the iPhone 15 unboxing' just works!",https://i.pravatar.cc/300?img=14,https://instagram.com/techwithalex
+Olivia Brown,oliviatravels,980000,Travel,"The automation features freed up 15 hours a week! Now I can focus on creating content instead of managing DMs.",https://i.pravatar.cc/300?img=44,https://instagram.com/oliviatravels
+David Kim,davidfitness,720000,Fitness,"snoolink's analytics helped me understand what content resonates. My follower growth rate doubled in 3 months!",https://i.pravatar.cc/300?img=51,https://instagram.com/davidfitness
+Sophie Laurent,sophiestyle,1100000,Fashion,"The best investment for my fashion brand. Finding archive pieces and creating lookbooks is now effortless!",https://i.pravatar.cc/300?img=20,https://instagram.com/sophiestyle
+Ryan Cooper,ryancooks,540000,Food,"I can search 'pasta dishes with wine' and get exactly what I need. This tool pays for itself in time saved!",https://i.pravatar.cc/300?img=33,https://instagram.com/ryancooks
+Mia Johnson,mia_wellness,890000,Lifestyle,"The content suggestions are spot-on. snoolink helped me maintain consistency and grow my wellness community.",https://i.pravatar.cc/300?img=23,https://instagram.com/mia_wellness
+Carlos Santos,carlos_adventures,1350000,Travel,"With footage from 50+ countries, I needed serious organization. snoolink delivered beyond expectations!",https://i.pravatar.cc/300?img=52,https://instagram.com/carlos_adventures
+Zoe Anderson,zoetech,670000,Tech,"The AI-powered tagging is incredibly accurate. It even recognizes specific gadgets and tech specifications!",https://i.pravatar.cc/300?img=47,https://instagram.com/zoetech
+Liam Chen,liamstyle,810000,Fashion,"Managing brand collaborations became so much easier. I can instantly pull up past sponsored content for references.",https://i.pravatar.cc/300?img=53,https://instagram.com/liamstyle
+Isabella Garcia,bella_fit,740000,Fitness,"The workout video organization is perfect. I can find any exercise demo in seconds for my training programs.",https://i.pravatar.cc/300?img=38,https://instagram.com/bella_fit
+Noah Williams,noahfoodie,620000,Food,"Recipe content management made simple! The AI even groups similar cuisines automatically.",https://i.pravatar.cc/300?img=56,https://instagram.com/noahfoodie
+Ava Martinez,ava_travels,1050000,Travel,"From chaos to clarity! snoolink organized 5 years of travel content in hours. The search is phenomenal!",https://i.pravatar.cc/300?img=27,https://instagram.com/ava_travels
+Ethan Lee,ethantech,930000,Tech,"Perfect for tech content creators. The automation handles routine engagement while I focus on reviews.",https://i.pravatar.cc/300?img=15,https://instagram.com/ethantech
+Maya Patel,maya_style,780000,Fashion,"The aesthetic scoring feature helps me curate my feed perfectly. My brand consistency improved dramatically!",https://i.pravatar.cc/300?img=28,https://instagram.com/maya_style
+Lucas Brown,lucas_healthy,690000,Lifestyle,"Meal prep content, workout routines, wellness tips - all organized beautifully. This tool is essential!",https://i.pravatar.cc/300?img=54,https://instagram.com/lucas_healthy
+Aria Wilson,aria_eats,570000,Food,"The duplicate detection saved me from posting similar content twice. Smart AI that actually understands food!",https://i.pravatar.cc/300?img=32,https://instagram.com/aria_eats
+Oliver Zhang,oliver_explores,1250000,Travel,"Travel content from 6 continents, perfectly organized. The location-based search is incredibly useful!",https://i.pravatar.cc/300?img=58,https://instagram.com/oliver_explores
+Emma Davis,emmafitstyle,860000,Fitness,"Combining fitness and fashion content was messy until snoolink. Now I can cross-reference effortlessly!",https://i.pravatar.cc/300?img=45,https://instagram.com/emmafitstyle
+James Taylor,james_techie,710000,Tech,"The best content management tool for tech creators. Period. My productivity increased 3x!",https://i.pravatar.cc/300?img=57,https://instagram.com/james_techie`;
+
+        // Parse CSV data
+        function parseCSVData(csvText) {
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    allInfluencers = results.data;
+                    document.getElementById('totalInfluencers').textContent = allInfluencers.length;
+                    displayInfluencers(allInfluencers);
+                    document.getElementById('loadingState').style.display = 'none';
+                },
+                error: function(error) {
+                    console.error('Error parsing CSV:', error);
+                    document.getElementById('loadingState').innerHTML = `
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">⚠️</div>
+                            <p class="text-xl text-gray-400">Error parsing influencer data</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // Load CSV file and initialize
+        async function initializeWallOfFame() {
+            try {
+                const response = await fetch('snoolink_wall_of_fame.csv');
+                
+                if (!response.ok) {
+                    throw new Error('CSV file not found, using fallback data');
+                }
+                
+                const csvText = await response.text();
+                console.log('✅ CSV file loaded successfully from file');
+                parseCSVData(csvText);
+                
+            } catch (error) {
+                console.warn('⚠️ Could not load external CSV file, using embedded data:', error.message);
+                console.log('💡 This is normal when opening HTML directly. To use external CSV, run a local server.');
+                parseCSVData(fallbackCSV);
+            }
+        }
+
+        function displayInfluencers(influencers) {
+            const grid = document.getElementById('influencersGrid');
+            const noResults = document.getElementById('noResults');
+            
+            if (influencers.length === 0) {
+                grid.innerHTML = '';
+                noResults.classList.remove('hidden');
+                return;
+            }
+
+            noResults.classList.add('hidden');
+            
+            grid.innerHTML = influencers.map((influencer, index) => `
+                <div class="influencer-card glass rounded-2xl overflow-hidden card-animate cursor-pointer" 
+                     style="animation-delay: ${index * 0.05}s"
+                     onclick="window.open('${influencer.instagram_url}', '_blank')">
+                    <div class="relative">
+                        <img src="${influencer.profile_image}" 
+                             alt="${influencer.name}" 
+                             class="w-full h-64 object-cover"
+                             onerror="this.src='https://i.pravatar.cc/300?img=${index + 1}'">
+                        <div class="profile-overlay absolute inset-0 bg-gradient-to-t from-snoolink-purple/90 to-transparent flex items-end justify-center pb-6">
+                            <div class="text-center">
+                                <div class="text-3xl mb-2">📸</div>
+                                <p class="font-bold">View Profile</p>
+                            </div>
+                        </div>
+                        <div class="absolute top-4 right-4 bg-snoolink-purple px-3 py-1 rounded-full text-xs font-bold">
+                            ${influencer.category}
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center mb-3">
+                            <div>
+                                <h3 class="text-xl font-bold">${influencer.name}</h3>
+                                <p class="text-snoolink-purple text-sm">@${influencer.username}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mb-4 text-sm text-gray-400">
+                            <span>👥 ${formatFollowers(influencer.followers)}</span>
+                        </div>
+                        <p class="text-gray-300 text-sm italic">"${influencer.testimonial}"</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatFollowers(followers) {
+            const num = parseInt(followers);
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(0) + 'K';
+            }
+            return num.toString();
+        }
+
+        function filterInfluencers(category) {
+            currentFilter = category;
+            
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.filter === category) {
+                    btn.className = 'filter-btn bg-snoolink-purple px-6 py-2 rounded-full font-semibold hover:scale-105 transition transform shadow-lg';
+                } else {
+                    btn.className = 'filter-btn glass px-6 py-2 rounded-full font-semibold hover:bg-white/20 transition';
+                }
+            });
+
+            // Filter and display
+            const filtered = category === 'all' 
+                ? allInfluencers 
+                : allInfluencers.filter(inf => inf.category === category);
+            
+            displayInfluencers(filtered);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeWallOfFame);
+    </script>
+</body>
+</html>

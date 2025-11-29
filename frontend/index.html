@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snoolink</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            snoolink: {
+              purple: "#5D16EB",
+            },
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-black text-white font-sans">
+  <!-- Navbar -->
+  <header class="w-full fixed top-0 left-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/10">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+      <img src="/assets/full_logo-black.png" alt="Snoolink Logo" class="h-10" />
+      <nav class="space-x-8 hidden md:flex">
+        <a href="#features" class="hover:text-snoolink-purple transition">Features</a>
+        <a href="#pricing" class="hover:text-snoolink-purple transition">Pricing</a>
+        <a href="#faq" class="hover:text-snoolink-purple transition">FAQ</a>
+      </nav>
+      <button class="bg-snoolink-purple px-5 py-2 rounded-xl text-white shadow-lg shadow-snoolink-purple/40 hover:scale-105 transition">Get Started</button>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative min-h-screen flex items-center justify-center text-center px-6 pt-32 pb-20 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-snoolink-purple/10 to-black pointer-events-none"></div>
+
+    <div class="relative z-10 max-w-3xl">
+      <h1 class="text-5xl md:text-7xl font-bold leading-tight mb-6 animate-fadeInUp">Create. Connect. Inspire.</h1>
+      <p class="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-10 animate-fadeInUp delay-150">
+        Snoolink helps creators turn ideas into stunning visual stories — effortlessly.
+      </p>
+      <button class="bg-snoolink-purple px-10 py-4 rounded-2xl text-xl shadow-snoolink-purple/40 shadow-lg hover:scale-110 transition animate-fadeInUp delay-300">
+        Start Creating
+      </button>
+    </div>
+
+    <!-- Animated Orbs -->
+    <div class="absolute -top-32 -right-20 w-80 h-80 bg-snoolink-purple rounded-full blur-[120px] opacity-40 animate-pulse"></div>
+    <div class="absolute -bottom-40 -left-24 w-96 h-96 bg-snoolink-purple rounded-full blur-[140px] opacity-30 animate-pulse"></div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="max-w-7xl mx-auto px-6 py-32">
+    <h2 class="text-4xl font-bold text-center mb-20">Powerful Features</h2>
+
+    <div class="grid md:grid-cols-3 gap-16">
+      <div class="bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-snoolink-purple/50 transition hover:scale-105">
+        <img src="https://placehold.co/300x200" class="rounded-xl mb-6" />
+        <h3 class="text-2xl font-semibold mb-3">AI Story Creator</h3>
+        <p class="text-gray-400">Generate high-quality visual stories instantly with our advanced AI engine.</p>
+      </div>
+      <div class="bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-snoolink-purple/50 transition hover:scale-105">
+        <img src="https://placehold.co/300x200" class="rounded-xl mb-6" />
+        <h3 class="text-2xl font-semibold mb-3">Smart Editing Tools</h3>
+        <p class="text-gray-400">Fine‑tune images, apply styles, and enhance your creations effortlessly.</p>
+      </div>
+      <div class="bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-snoolink-purple/50 transition hover:scale-105">
+        <img src="https://placehold.co/300x200" class="rounded-xl mb-6" />
+        <h3 class="text-2xl font-semibold mb-3">Instant Sharing</h3>
+        <p class="text-gray-400">Share your stories directly to any platform with one click.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="bg-white/5 border-y border-white/10 py-32 px-6">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold text-center mb-20">Simple, Transparent Pricing</h2>
+
+      <div class="grid md:grid-cols-3 gap-10">
+        <div class="p-10 rounded-3xl bg-black/40 border border-white/10 hover:border-snoolink-purple/50 transition">
+          <h3 class="text-2xl font-bold mb-4">Free</h3>
+          <p class="text-gray-400 mb-6">Perfect for beginners</p>
+          <p class="text-5xl font-bold mb-6">$0</p>
+          <ul class="text-gray-300 space-y-3 mb-6">
+            <li>5 AI Creations / month</li>
+            <li>Basic Editing Tools</li>
+            <li>Standard Export</li>
+          </ul>
+          <button class="w-full bg-snoolink-purple py-3 rounded-xl">Get Started</button>
+        </div>
+
+        <div class="p-10 rounded-3xl bg-snoolink-purple/20 border border-snoolink-purple/60 shadow-xl shadow-snoolink-purple/30 scale-105">
+          <h3 class="text-2xl font-bold mb-4">Pro</h3>
+          <p class="text-gray-300 mb-6">Best for serious creators</p>
+          <p class="text-5xl font-bold mb-6">$19</p>
+          <ul class="text-gray-200 space-y-3 mb-6">
+            <li>Unlimited AI Creations</li>
+            <li>Advanced Editing Tools</li>
+            <li>High‑Resolution Export</li>
+          </ul>
+          <button class="w-full bg-snoolink-purple py-3 rounded-xl">Upgrade</button>
+        </div>
+
+        <div class="p-10 rounded-3xl bg-black/40 border border-white/10 hover:border-snoolink-purple/50 transition">
+          <h3 class="text-2xl font-bold mb-4">Enterprise</h3>
+          <p class="text-gray-400 mb-6">For teams & businesses</p>
+          <p class="text-5xl font-bold mb-6">Custom</p>
+          <ul class="text-gray-300 space-y-3 mb-6">
+            <li>Team Dashboard</li>
+            <li>Dedicated Support</li>
+            <li>API Access</li>
+          </ul>
+          <button class="w-full bg-snoolink-purple py-3 rounded-xl">Contact Sales</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="max-w-5xl mx-auto px-6 py-32">
+    <h2 class="text-4xl font-bold text-center mb-16">Frequently Asked Questions</h2>
+
+    <div class="space-y-8">
+      <div>
+        <h3 class="text-xl font-semibold mb-2">What is Snoolink?</h3>
+        <p class="text-gray-400">Snoolink is an AI-powered visual storytelling platform.</p>
+      </div>
+      <div>
+        <h3 class="text-xl font-semibold mb-2">Do I need design skills?</h3>
+        <p class="text-gray-400">Not at all — the AI handles everything for you.</p>
+      </div>
+      <div>
+        <h3 class="text-xl font-semibold mb-2">Can I use it for commercial work?</h3>
+        <p class="text-gray-400">Yes, all paid plans include full commercial rights.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-white/5 border-t border-white/10 py-12 px-6 text-center">
+    <img src="/assets/full_logo-white.png" alt="Snoolink Logo White" class="h-10 mx-auto mb-6 opacity-80" />
+    <p class="text-gray-500">© 2025 Snoolink. All rights reserved.</p>
+  </footer>
+
+  <!-- Animations -->
+  <style>
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeInUp { animation: fadeInUp 0.8s ease forwards; }
+    .delay-150 { animation-delay: .15s; }
+    .delay-300 { animation-delay: .3s; }
+  </style>
+</body>
+</html>
