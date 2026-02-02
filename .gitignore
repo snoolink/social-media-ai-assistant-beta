@@ -146,4 +146,4 @@ id_rsa.pub
 *.gif
 *.bmp
 *.heic
-*.pickle
+token.pickle
