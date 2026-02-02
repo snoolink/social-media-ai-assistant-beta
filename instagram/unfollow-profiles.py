@@ -14,11 +14,11 @@ from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/unfollow_list.csv"  # Must contain column 'url'
-DAILY_LIMIT = 75  # Maximum unfollows per day
+CSV_FILE = "profiles-data/instagram_followings_2025-12-15_23-10-28.csv"  # Must contain column 'url'
+DAILY_LIMIT = 100  # Maximum unfollows per day
 BREAK_AFTER = 13  # Take a break after this many unfollows
-MIN_BREAK_TIME = 60  # Minimum break time in seconds (1 minute)
-MAX_BREAK_TIME = 2700  # Maximum break time in seconds (45 minutes)
+MIN_BREAK_TIME = 6  # Minimum break time in seconds (1 minute)
+MAX_BREAK_TIME = 270  # Maximum break time in seconds (45 minutes)
 MIN_WAIT_BETWEEN_PROFILES = 0  # Minimum wait between profiles
 MAX_WAIT_BETWEEN_PROFILES = 30  # Maximum wait between profiles
 # ===============================
@@ -35,7 +35,7 @@ def setup_driver():
     
     # Additional stealth options
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option('useAutomationExtension', False)
+    chrome_options.add_experimental_option('useAutomatiosnExtension', False)
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     
     # Set a realistic user agent

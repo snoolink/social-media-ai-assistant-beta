@@ -7,15 +7,15 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium_stealth import stealth
 from webdriver_manager.chrome import ChromeDriverManager
 import random
 from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
+from selenium.webdriver.common.action_chains import ActionChains
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/suggested_profiles_2025-11-25.csv"  # Must contain column 'url'
+CSV_FILE = "profiles-data/suggested_profiles_2025-12-03_03-06-05.csv"  # Must contain column 'url'
 DAILY_STORY_LIKE_LIMIT = 200  # Maximum story likes per day
 BREAK_AFTER = 15  # Take a break after this many likes
 MIN_BREAK_TIME = 120  # Minimum break time in seconds (2 minutes)

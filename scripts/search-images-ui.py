@@ -9,12 +9,13 @@ import streamlit as st
 from PIL import Image
 from google import genai
 from google.genai import types
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the query expander
 from scripts.query_expander import expand_query_with_cache
 
 # -------------------------
-# CONFIG  /Users/jay/Desktop/miss-you-india /Users/jay/Downloads/fall-2025
+# CONFIG  /Users/jay/Desktop/miss-you-india /Users/jay/Downloads/fall-2025 
 # -------------------------
 MODEL_NAME = "gemini-2.0-flash-exp"
 MAX_RETRIES_PER_KEY = 2  # Retries before switching API key

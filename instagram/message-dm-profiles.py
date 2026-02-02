@@ -14,24 +14,32 @@ from datetime import datetime
 from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/suggested_profiles_2025-11-26_02-20-20.csv"  # Must contain columns 'url' and optionally 'userName'
-MESSAGE_TEMPLATE = """Hi {name}!
+CSV_FILE = "profiles-data/snoolink-to-be-reached-1.csv"  # Must contain columns 'url' and optionally 'userName'
+# MESSAGE_TEMPLATE = """Hi {name}!
 
-Firstly what a great profile! I am Jay and am building a content creation  platform --> @snoolink. I genuinely loved your content and the vibe you bring… felt super aligned with what we are building.
+# Firstly what a great profile! I am Jay and am building a content creation  platform --> @snoolink. I genuinely loved your content and the vibe you bring… felt super aligned with what we are building.
 
-I am currently working with a exclusive group of creators, and I would love to make a FREE custom reel for you— no commitments, just something cool we can create together.
+# I am currently working with a exclusive group of creators, and I would love to make a FREE custom reel for you— no commitments, just something cool we can create together.
 
-Have a look at what we are building and share your thoughts! Just let me know, happy to get things rolling!"""
+# Have a look at what we are building and share your thoughts! Just let me know, happy to get things rolling!"""
+
+MESSAGE_TEMPLATE = """Hey Pretty Lady!!!
+
+We are Snoolink(www.snoolink.com). Content Curation and Creation Platform. Simply put, we love your content — your style and edits really stand out.
+
+As part of our New Year creator outreach, we are making FREE custom reel for a few creators we admire. No cost, no catch — just something tailored to your vibe.
+
+Check out our page. Just let us know and we can get things rolling! All we need is few of your videos and then see our magic :)"""
 
 MAX_FOLLOWERS = 35000  # Only message profiles with followers below this threshold
 MIN_FOLLOWERS = 1500  # Only message profiles with followers below this threshold
 
 DAILY_DM_LIMIT = 150  # Maximum DMs per day to avoid spam detection
-BREAK_AFTER = 10  # Take a break after this many DMs
-MIN_BREAK_TIME = 12  # Minimum break time in seconds (2 minutes)
-MAX_BREAK_TIME = 44  # Maximum break time in seconds (30 minutes)
+BREAK_AFTER = 55  # Take a break after this many DMs
+MIN_BREAK_TIME = 1  # Minimum break time in seconds (2 minutes)
+MAX_BREAK_TIME = 2  # Maximum break time in seconds (30 minutes)
 MIN_WAIT_BETWEEN_DMS = 1  # Minimum wait between DMs (seconds)
-MAX_WAIT_BETWEEN_DMS = 3  # Maximum wait between DMs (seconds)
+MAX_WAIT_BETWEEN_DMS = 1  # Maximum wait between DMs (seconds)
 # ===============================
 
 def setup_driver():
@@ -93,7 +101,7 @@ def login_instagram(driver):
         user_input.send_keys(char)
         time.sleep(random.uniform(0.1, 0.3))
     
-    time.sleep(random.uniform(0.5, 1.5))
+    # time.sleep(random.uniform(0.5, 1.5))
     
     for char in INSTAGRAM_PASSWORD:
         pass_input.send_keys(char)
@@ -229,6 +237,63 @@ def scrape_follower_count(driver, username, wait_time=10):
         return None
 
 
+# def scrape_first_name(driver, wait_time=10):
+#     """
+#     Scrape the first name from the Instagram profile page
+#     Returns the first word of the name, or username as fallback
+#     """
+#     wait = WebDriverWait(driver, wait_time)
+    
+#     try:
+#         # Specific selector based on the HTML structure you provided
+#         name_xpaths = [
+#             "//span[contains(@class, 'x1lliihq x1plvlek xryxfnj x1n2onr6') and @dir='auto']",
+#             "//div[contains(@class, 'xdj266r')]//span[contains(@class, 'x1lliihq') and @dir='auto']",
+#             "//header//span[contains(@class, 'x1lliihq') and @dir='auto']",
+#             "//span[@dir='auto' and contains(@class, 'x1lliihq')]"
+#         ]
+        
+#         for xpath in name_xpaths:
+#             try:
+#                 name_element = driver.find_element(By.XPATH, xpath)
+#                 full_name = name_element.text.strip()
+                
+#                 # Check if it's actually a name (not empty, not just username)
+#                 if full_name and len(full_name) > 0 and not full_name.startswith('@'):
+#                     print(f"👤 Found full name: {full_name}")
+                    
+#                     # Extract first name (first word)
+#                     first_name = full_name.split()[0]
+                    
+#                     # Remove emojis, special characters, and fancy unicode characters
+#                     # Keep only basic alphanumeric characters
+#                     cleaned_name = ''
+#                     for char in first_name:
+#                         # Keep only ASCII letters (A-Z, a-z)
+#                         if char.isalpha() and ord(char) < 128:
+#                             cleaned_name += char
+                    
+#                     if cleaned_name:
+#                         print(f"✨ Using first name: {cleaned_name}")
+#                         return cleaned_name
+#                     else:
+#                         # If name has only special characters, try second word
+#                         words = full_name.split()
+#                         for word in words:
+#                             cleaned = ''.join(c for c in word if c.isalpha() and ord(c) < 128)
+#                             if cleaned:
+#                                 print(f"✨ Using first name: {cleaned}")
+#                                 return cleaned
+#             except:
+#                 continue
+        
+#         print(f"⚠️  Could not find profile name, will use username")
+#         return None
+        
+#     except Exception as e:
+#         print(f"⚠️  Error scraping name: {e}")
+#         return None
+
 def scrape_first_name(driver, wait_time=10):
     """
     Scrape the first name from the Instagram profile page
@@ -237,47 +302,74 @@ def scrape_first_name(driver, wait_time=10):
     wait = WebDriverWait(driver, wait_time)
     
     try:
-        # Specific selector based on the HTML structure you provided
+        # More specific selectors targeting the profile name section
         name_xpaths = [
-            "//span[contains(@class, 'x1lliihq x1plvlek xryxfnj x1n2onr6') and @dir='auto']",
-            "//div[contains(@class, 'xdj266r')]//span[contains(@class, 'x1lliihq') and @dir='auto']",
-            "//header//span[contains(@class, 'x1lliihq') and @dir='auto']",
-            "//span[@dir='auto' and contains(@class, 'x1lliihq')]"
+            # Target the span with both specific classes AND the inline style attribute
+            "//div[contains(@class, 'xdj266r')]//span[contains(@class, 'x1lliihq x1plvlek xryxfnj x1n2onr6') and @dir='auto' and @style]",
+            
+            # Target span inside the specific header section structure
+            "//header//div[contains(@class, 'xdj266r')]//span[@dir='auto' and contains(@class, 'x1lliihq')]",
+            
+            # Look for span with the exact style attribute pattern
+            "//span[@dir='auto' and contains(@style, '--x---base-line-clamp-line-height')]",
+            
+            # More general but still specific to profile header
+            "//section//header//span[contains(@class, 'x1lliihq') and @dir='auto']",
         ]
+        
+        found_names = []
         
         for xpath in name_xpaths:
             try:
-                name_element = driver.find_element(By.XPATH, xpath)
-                full_name = name_element.text.strip()
+                elements = driver.find_elements(By.XPATH, xpath)
                 
-                # Check if it's actually a name (not empty, not just username)
-                if full_name and len(full_name) > 0 and not full_name.startswith('@'):
-                    print(f"👤 Found full name: {full_name}")
+                for element in elements:
+                    text = element.text.strip()
                     
-                    # Extract first name (first word)
-                    first_name = full_name.split()[0]
-                    
-                    # Remove emojis, special characters, and fancy unicode characters
-                    # Keep only basic alphanumeric characters
-                    cleaned_name = ''
-                    for char in first_name:
-                        # Keep only ASCII letters (A-Z, a-z)
-                        if char.isalpha() and ord(char) < 128:
-                            cleaned_name += char
-                    
-                    if cleaned_name:
-                        print(f"✨ Using first name: {cleaned_name}")
-                        return cleaned_name
-                    else:
-                        # If name has only special characters, try second word
-                        words = full_name.split()
-                        for word in words:
-                            cleaned = ''.join(c for c in word if c.isalpha() and ord(c) < 128)
-                            if cleaned:
-                                print(f"✨ Using first name: {cleaned}")
-                                return cleaned
+                    # Filter out common false positives
+                    if (text and 
+                        len(text) > 0 and 
+                        not text.startswith('@') and 
+                        text.lower() not in ['home', 'search', 'explore', 'reels', 'messages', 
+                                             'notifications', 'create', 'profile', 'more',
+                                             'following', 'followers', 'posts']):
+                        
+                        # Additional check: name should have at least one letter
+                        if any(c.isalpha() for c in text):
+                            found_names.append(text)
+                            print(f"👤 Found potential name: {text}")
+                
             except:
                 continue
+        
+        # If we found multiple potential names, take the longest one (likely the full name)
+        if found_names:
+            # Sort by length and take the longest
+            full_name = max(found_names, key=len)
+            print(f"✨ Selected full name: {full_name}")
+            
+            # Extract first name (first word)
+            first_name = full_name.split()[0]
+            
+            # Remove emojis, special characters, and fancy unicode characters
+            # Keep only basic alphanumeric characters
+            cleaned_name = ''
+            for char in first_name:
+                # Keep only ASCII letters (A-Z, a-z)
+                if char.isalpha() and ord(char) < 128:
+                    cleaned_name += char
+            
+            if cleaned_name:
+                print(f"✅ Using first name: {cleaned_name}")
+                return cleaned_name
+            else:
+                # If name has only special characters, try second word
+                words = full_name.split()
+                for word in words:
+                    cleaned = ''.join(c for c in word if c.isalpha() and ord(c) < 128)
+                    if cleaned:
+                        print(f"✅ Using first name: {cleaned}")
+                        return cleaned
         
         print(f"⚠️  Could not find profile name, will use username")
         return None
@@ -285,8 +377,6 @@ def scrape_first_name(driver, wait_time=10):
     except Exception as e:
         print(f"⚠️  Error scraping name: {e}")
         return None
-
-
 def check_and_follow_if_needed(driver, username, wait_time=10):
     """
     Check if the profile is already followed. If not, follow them.
@@ -317,7 +407,7 @@ def check_and_follow_if_needed(driver, username, wait_time=10):
             
             # Scroll to button and click
             driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", follow_btn)
-            time.sleep(random.uniform(0.8, 1.5))
+            time.sleep(random.uniform(0.5, 1))
             
             try:
                 follow_btn.click()
