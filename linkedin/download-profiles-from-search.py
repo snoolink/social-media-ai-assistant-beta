@@ -283,7 +283,7 @@ def download_linkedin_profiles(csv_file, email, password, output_dir='linkedin_p
             timestamp = datetime.now().strftime("%m-%d-%y-%H")
 
             # Construct filename
-            csv_filename = f"extracted_profile_url_{timestamp}.csv"
+            csv_filename = f"extracted_profiles_of_tech_recs_{timestamp}.csv"
             urls_df.to_csv(f"{output_dir}/{csv_filename}", index=False)
             print(f"✓ Saved extracted URLs to {output_dir}/{csv_filename}")
             
@@ -378,7 +378,7 @@ if __name__ == "__main__":
     # ========== Usage Examples ==========
     
     # Example 1: Extract profiles from a specific LinkedIn search page with pagination
-    page_url = "https://www.linkedin.com/search/results/people/?keywords=creative%20head&network=%5B%22F%22%5D&origin=FACETED_SEARCH&searchId=fbda9163-8105-40f7-8eb4-9d3912820399&sid=ddd"
+    page_url = "https://www.linkedin.com/search/results/people/?keywords=technical%20recruiters%20&origin=FACETED_SEARCH&network=%5B%22S%22%2C%22O%22%5D&geoUrn=%5B%22103644278%22%5D&activelyHiringForJobTitles=%5B%222732%22%2C%2225190%22%2C%22340%22%5D"
     download_linkedin_profiles(
         csv_file=None,
         email=email, 

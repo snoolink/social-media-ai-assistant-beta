@@ -1,0 +1,13 @@
+# MESSAGE_TEMPLATE = """Hi {name}!
+
+# Firstly what a great profile! I am Jay and am building a content creation  platform --> @snoolink. I genuinely loved your content and the vibe you bring… felt super aligned with what we are building.
+
+# I am currently working with a exclusive group of creators, and I would love to make a FREE custom reel for you— no commitments, just something cool we can create together.
+
+# Have a look at what we are building and share your thoughts! Just let me know, happy to get things rolling!"""
+
+MESSAGE_TEMPLATE = """Hey Girl, stumbled on your page and I am in awe of how you mix travel with the lifestyle and fashion vibe — super inspiring. The way you show your life really stood out to me.
+
+Jay here. I am building startup (snoolink.com) that helps creators turn their travel and lifestyle videos into content using AI, so I end up following a lot of people in this space.
+
+Are you mainly creating just for fun right now, or are you trying to grow your page this year?"""

@@ -14,28 +14,23 @@ from datetime import datetime
 # Note: Manual login is used, so credentials are not needed from creds.py
 
 # ======== CONFIGURATION ========
-CSV_FILE = "instagram-profiles/jay-to-be-reached-5.csv"  # Must contain columns 'url' and optionally 'userName'
-# MESSAGE_TEMPLATE = """Hi {name}!
+CSV_FILE = "instagram-profiles/snoolink-val-to-be-reached.csv"  # Must contain columns 'url' and optionally 'userName'
+MESSAGE_TEMPLATE = """Hey Girl, We just found your page and your content is honestly is fire!! 
 
-# Firstly what a great profile! I am Jay and am building a content creation  platform --> @snoolink. I genuinely loved your content and the vibe you bring… felt super aligned with what we are building.
+At Snoolink, we help creators turn their photos & clips into scroll-stopping reels.
 
-# I am currently working with a exclusive group of creators, and I would love to make a FREE custom reel for you— no commitments, just something cool we can create together.
+This Valentine Week, we are doing a little “digital love” for couples or self lovers :P and making FREE reels for creators we vibe with.
 
-# Have a look at what we are building and share your thoughts! Just let me know, happy to get things rolling!"""
+If you are down, we are happy to get things rolling and surprise you with a custom reel. No sales, just good content.
 
-MESSAGE_TEMPLATE = """Hey Girl, stumbled on your page and I am in awe of how you mix travel with the lifestyle and fashion vibe. The way you show your life really stood out to me.
-
-Jay here! I am building my startup @snoolink that helps creators turn their travel and lifestyle videos into content using AI, so I end up following a lot of people in this space.
-
-Are you mainly creating just for fun right now, or are you trying to grow your page this year?"""
-
-MAX_FOLLOWERS = 10000  # Only message profiles with followers below this threshold
-MIN_FOLLOWERS = 100  # Only message profiles with followers below this threshold
+Should I make one for you?"""  # Personalize with {name} placeholder
+MAX_FOLLOWERS = 35000  # Only message profiles with followers below this threshold
+MIN_FOLLOWERS = 1000  # Only message profiles with followers below this threshold
 
 DAILY_DM_LIMIT = 250  # Maximum DMs per day to avoid spam detection
 BREAK_AFTER = 55  # Take a break after this many DMs
-MIN_BREAK_TIME = 10  # Minimum break time in seconds (2 minutes)
-MAX_BREAK_TIME = 60  # Maximum break time in seconds (10 minutes)
+MIN_BREAK_TIME = 1  # Minimum break time in seconds (2 minutes)
+MAX_BREAK_TIME = 6  # Maximum break time in seconds (10 minutes)
 MIN_WAIT_BETWEEN_DMS = 1  # Minimum wait between DMs (seconds)
 MAX_WAIT_BETWEEN_DMS = 4  # Maximum wait between DMs (seconds)
 # ===============================

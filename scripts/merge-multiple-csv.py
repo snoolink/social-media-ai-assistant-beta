@@ -69,14 +69,13 @@ if __name__ == "__main__":
     ]
 
     csv_files.extend([
-        '/Users/jay/Downloads/suggested_profiles_2026-01-15_16-45-10.csv',
-        '/Users/jay/Downloads/suggested_profiles_2026-01-15_16-46-52.csv',
-        '/Users/jay/Downloads/suggested_profiles_2026-01-15_16-47-35.csv',
-        '/Users/jay/Downloads/suggested_profiles_2026-01-15_16-48-15.csv'
+        '/Users/jay/Downloads/suggested_profiles_2026-02-26_01-14-41.csv',
+        '/Users/jay/Downloads/suggested_profiles_2026-02-26_01-15-44.csv',
+        '/Users/jay/Downloads/suggested_profiles_2026-02-26_01-21-22.csv'
     ])
 
     # Output file path
-    output_file = '/Users/jay/Documents/Jay Social Media/suzy/social-media-ai-assistant/profiles-data/snoolink-to-be-reached-1.csv'
+    output_file = 'instagram-profiles/jay-to-be-reached-5.csv'
     
     # You can also pass files via command line arguments
     if len(sys.argv) > 1:

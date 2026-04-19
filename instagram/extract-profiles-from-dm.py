@@ -15,12 +15,11 @@ from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
 TARGET_PROFILE = "jaydev_13"  # The profile whose DMs we want to check
-OUTPUT_CSV = "extracted_profiles.csv"
-MAX_PROFILES_TO_EXTRACT = 10
-SCROLL_PAUSE_TIME = 2  # Time to wait after scrolling
+OUTPUT_CSV = "extracted_profiles.csv" 
+MAX_PROFILES_TO_EXTRACT = 10 
+SCROLL_PAUSE_TIME = 2  # Time to wait after scrolling 
 MAX_SCROLLS = 50  # Maximum number of scrolls to prevent infinite loops
 # ===============================
-
 
 def setup_driver():
     chrome_options = Options()

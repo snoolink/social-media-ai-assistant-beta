@@ -16,6 +16,8 @@ import time
 import random
 import logging
 from datetime import datetime
+import os
+from creds import LINKEDIN_USERNAME, LINKEDIN_PASSWORD
 
 # Configure logging
 logging.basicConfig(
@@ -34,21 +36,61 @@ class LinkedInConnectionBot:
         self.password = password
         self.driver = None
         self.wait = None
+
+    def login(self):
+        """Login to LinkedIn"""
+        try:
+            logging.info("Navigating to LinkedIn login page...")
+            self.driver.get('https://www.linkedin.com/login')
+            
+            # Wait and enter email
+            email_field = self.wait.until(
+                EC.presence_of_element_located((By.ID, 'username'))
+            )
+            email_field.send_keys(LINKEDIN_USERNAME)
+            
+            # Enter password
+            password_field = self.driver.find_element(By.ID, 'password')
+            password_field.send_keys(LINKEDIN_PASSWORD)
+            
+            # Click login button
+            login_button = self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
+            login_button.click()
+            
+            # Wait for login to complete
+            time.sleep(5)
+            
+            # Check for verification
+            if "checkpoint" in self.driver.current_url or "challenge" in self.driver.current_url:
+                logging.warning("LinkedIn requires verification. Please complete it manually...")
+                input("Press Enter after completing verification...")
+            
+            # Check if login was successful
+            if "feed" in self.driver.current_url or "mynetwork" in self.driver.current_url:
+                logging.info("✓ Login successful!")
+                return True
+            else:
+                logging.error("✗ Login may have failed. Please check manually.")
+                return False
+                
+        except Exception as e:
+            logging.error(f"Login error: {str(e)}")
+            return False
         
     def setup_driver(self):
-        """Setup Chrome driver with options"""
-        options = webdriver.ChromeOptions()
-        # Uncomment to run headless
-        # options.add_argument('--headless')
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-        
-        self.driver = webdriver.Chrome(options=options)
-        self.wait = WebDriverWait(self.driver, 10)
-        self.driver.maximize_window()
-        
+            """Setup Chrome driver with options"""
+            options = webdriver.ChromeOptions()
+            # Uncomment to run headless
+            # options.add_argument('--headless')
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
+            
+            self.driver = webdriver.Chrome(options=options)
+            self.wait = WebDriverWait(self.driver, 10)
+            self.driver.maximize_window()
+            
     def login(self):
         """Login to LinkedIn"""
         try:
@@ -456,7 +498,7 @@ def main():
     # Input/Output files
     # INPUT_CSV = "linkedin_profiles/extracted_profile_urls-1.csv"  # CSV file with 'url' column
     # INPUT_CSV = f"linkedin_profiles/extracted_profiles_keydata_{timestamp}.csv"  # Output file
-    INPUT_CSV = f"producthunt_profiles.csv"  # Output file
+    INPUT_CSV = f"linkedin_profiles/producthunt_profiles.csv"  # Output file
 
     # Maximum connection requests to send (LinkedIn limits ~100/week)
     MAX_REQUESTS = 200

@@ -11,16 +11,15 @@ from selenium_stealth import stealth
 from webdriver_manager.chrome import ChromeDriverManager
 import random
 from datetime import datetime
-from creds import INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD
 
 # ======== CONFIGURATION ========
-CSV_FILE = "profiles-data/instagram_followings_2025-12-15_23-10-28.csv"  # Must contain column 'url'
-DAILY_LIMIT = 100  # Maximum unfollows per day
+CSV_FILE = "instagram-profiles/ig_commenters_2026-04-15.csv"  # Must contain column 'url'
+DAILY_LIMIT = 200  # Maximum unfollows per day
 BREAK_AFTER = 13  # Take a break after this many unfollows
 MIN_BREAK_TIME = 6  # Minimum break time in seconds (1 minute)
 MAX_BREAK_TIME = 270  # Maximum break time in seconds (45 minutes)
 MIN_WAIT_BETWEEN_PROFILES = 0  # Minimum wait between profiles
-MAX_WAIT_BETWEEN_PROFILES = 30  # Maximum wait between profiles
+MAX_WAIT_BETWEEN_PROFILES = 22  # Maximum wait between profiles
 # ===============================
 
 def setup_driver():
@@ -35,7 +34,7 @@ def setup_driver():
     
     # Additional stealth options
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option('useAutomatiosnExtension', False)
+    chrome_options.add_experimental_option('useAutomationExtension', False)
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     
     # Set a realistic user agent
@@ -65,35 +64,19 @@ def setup_driver():
 
 def login_instagram(driver):
     driver.get("https://www.instagram.com/")
-    wait = WebDriverWait(driver, 15)
-
-    print("🔐 Logging into Instagram...")
     
-    # Random wait to simulate human behavior
-    time.sleep(random.uniform(3, 7))
+    print("\n" + "="*60)
+    print("🔐 MANUAL LOGIN REQUIRED")
+    print("="*60)
+    print("Please login to Instagram manually in the browser window.")
+    print("Once you're logged in and can see your feed,")
+    print("press ENTER here to continue with the automation...")
+    print("="*60 + "\n")
     
-    wait.until(EC.presence_of_element_located((By.NAME, "username")))
-
-    user_input = driver.find_element(By.NAME, "username")
-    pass_input = driver.find_element(By.NAME, "password")
-
-    # Type with human-like delays
-    for char in INSTAGRAM_USERNAME:
-        user_input.send_keys(char)
-        time.sleep(random.uniform(0.1, 0.3))
+    input()  # Wait for user to press Enter
     
-    time.sleep(random.uniform(0.5, 1.5))
-    
-    for char in INSTAGRAM_PASSWORD:
-        pass_input.send_keys(char)
-        time.sleep(random.uniform(0.1, 0.3))
-    
-    time.sleep(random.uniform(0.5, 1))
-    pass_input.send_keys(Keys.RETURN)
-
-    # Wait for login to complete
-    time.sleep(random.uniform(8, 12))
-    print("✅ Logged in successfully.")
+    print("✅ Continuing with the automation...\n")
+    time.sleep(2)
 
 
 def unfollow_user(driver, profile_url, wait_time=15):

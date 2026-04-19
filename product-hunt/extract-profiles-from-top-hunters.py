@@ -119,7 +119,7 @@ def wait_for_login(driver):
 
     human_like_delay(1, 2)
 
-def extract_profile_links(driver, target_count=200):
+def extract_profile_links(driver, target_count=400):
     """Scroll intelligently until target_count profiles are collected"""
     
     print("\nNavigating to Visit Streaks page...")

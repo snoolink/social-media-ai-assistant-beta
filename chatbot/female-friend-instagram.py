@@ -14,7 +14,7 @@ from datetime import datetime
 from creds import GEMINI_API_KEY
 
 # ======== CONFIGURATION ========
-TARGET_USERNAME = "param_819073"  # Username to message 
+TARGET_USERNAME = "jaydev_13"  # Username to message 
 INACTIVITY_TIMEOUT = 15 * 60  # 15 minutes in seconds 
 CHECK_NEW_MESSAGE_INTERVAL = 3  # Check for new messages every 3 seconds
 INITIAL_MESSAGE = "What are you doing?"
