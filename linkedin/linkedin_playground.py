@@ -120,27 +120,17 @@ class LinkedInConnectionBot:
         """
         Find the Connect button in the profile actions bar.
 
-        From inspecting real LinkedIn HTML, the actions bar structure is:
-          <div class="...">                          ← outer wrapper (randomized class)
-            <button aria-label="Invite X to connect">Connect</button>
-            <div class="entry-point ...">
-              <button aria-label="Message X">Message</button>
-            </div>
-            <div class="artdeco-dropdown ...">       ← More actions dropdown
-              <button aria-label="More actions">
-            </div>
-          </div>
-
-        The Connect button is a sibling of the Message button and the More actions
-        dropdown. We use this co-location to anchor our search — any button that
-        shares a parent container with a "Message" button or "More actions" button
-        and whose own label/text says "Connect" is the right one.
+        Target button shape (from live LinkedIn HTML):
+          <button aria-label="Invite X to connect"
+                  class="artdeco-button artdeco-button--2 artdeco-button--primary ...">
+            <span class="artdeco-button__text">Connect</span>
+          </button>
 
         Strategies (tried in order, all skip sidebar elements):
-          1. Button in same parent as a "Message" button, with "to connect" in aria-label
-          2. Button in same parent as "More actions" button, with "to connect" in aria-label
-          3. Broader aria-label scan: any button with "Invite" + "connect" in label
-          4. Broader text scan: any button whose visible span text is exactly "Connect"
+          1. PRIMARY button with "to connect" in aria-label  ← most precise
+          2. Any button with "to connect" in aria-label
+          3. PRIMARY button whose span text is exactly "Connect"
+          4. Any button whose span text is exactly "Connect"
         """
 
         def valid(el):
@@ -149,49 +139,37 @@ class LinkedInConnectionBot:
             except Exception:
                 return False
 
-        # Strategy 1 & 2: co-location with known sibling buttons
-        # Find the actions container by locating the Message button or More actions button,
-        # then walk up to their shared parent and search for Connect there.
-        sibling_xpaths = [
-            "//button[contains(@aria-label, 'Message')]",          # "Message X"
-            "//button[@aria-label='More actions']",                 # overflow trigger
-        ]
-        for sibling_xpath in sibling_xpaths:
-            siblings = self.driver.find_elements(By.XPATH, sibling_xpath)
-            for sibling in siblings:
-                try:
-                    if not valid(sibling):
-                        continue
-                    # Walk up 1–3 levels to find a container that also holds Connect
-                    for _ in range(3):
-                        sibling = sibling.find_element(By.XPATH, "..")
-                        connect_candidates = sibling.find_elements(
-                            By.XPATH,
-                            ".//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), 'to connect')]"
-                        )
-                        for el in connect_candidates:
-                            if valid(el):
-                                return el
-                        # Also check span text = "Connect" within the same container
-                        connect_candidates = sibling.find_elements(
-                            By.XPATH,
-                            ".//button[.//span[normalize-space(text())='Connect']]"
-                        )
-                        for el in connect_candidates:
-                            if valid(el):
-                                return el
-                except Exception:
-                    continue
-
-        # Strategy 3: global aria-label scan — "Invite … to connect"
+        # Strategy 1: artdeco-button--primary + "to connect" aria-label (exact shape from HTML)
         for el in self.driver.find_elements(
             By.XPATH,
-            "//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), 'to connect')]"
+            "//button["
+            "contains(@class,'artdeco-button--primary') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect')"
+            "]"
         ):
             if valid(el):
                 return el
 
-        # Strategy 4: global span-text scan — button whose only visible text is "Connect"
+        # Strategy 2: any button with "to connect" in aria-label (no class filter)
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect')]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 3: artdeco-button--primary whose span text is "Connect"
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//button["
+            "contains(@class,'artdeco-button--primary') and "
+            ".//span[normalize-space(text())='Connect']"
+            "]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 4: any button whose span text is "Connect"
         for el in self.driver.find_elements(
             By.XPATH,
             "//button[.//span[normalize-space(text())='Connect']]"
