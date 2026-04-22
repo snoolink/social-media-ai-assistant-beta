@@ -595,6 +595,5 @@ I'm currently exploring new opportunities and would love to connect and learn mo
     finally:
         bot.close()
 
-
 if __name__ == "__main__":
     main()
