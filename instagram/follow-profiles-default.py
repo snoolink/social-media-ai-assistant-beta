@@ -12,14 +12,14 @@ import random
 from datetime import datetime
 
 # ======== CONFIGURATION ========
-CSV_FILE = "instagram-profiles/ig_commenters_2026-04-16.csv"
+CSV_FILE = "instagram-profiles/itsaryan_jay.csv"
 
-DAILY_FOLLOW_LIMIT = 150
+DAILY_FOLLOW_LIMIT = 250
 BREAK_AFTER = 50
 MIN_BREAK_TIME = 33
 MAX_BREAK_TIME = 100
-MIN_WAIT_BETWEEN = 3
-MAX_WAIT_BETWEEN = 8
+MIN_WAIT_BETWEEN = 10
+MAX_WAIT_BETWEEN = 30
 # ===============================
 
 def setup_driver():

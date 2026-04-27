@@ -10,13 +10,16 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoSuchElementException,
+    StaleElementReferenceException,
+)
 import pandas as pd
 import time
 import random
 from datetime import datetime
 from creds import LINKEDIN_USERNAME, LINKEDIN_PASSWORD
-
 
 class LinkedInConnectionBot:
     def __init__(self, email, password):
@@ -103,18 +106,97 @@ class LinkedInConnectionBot:
         try:
             return self.driver.execute_script("""
                 var el = arguments[0];
-                for (var i = 0; i < 12; i++) {
-                    if (!el) return false;
-                    var tag = el.tagName ? el.tagName.toLowerCase() : '';
-                    if (tag === 'aside') return true;
-                    var cls = (el.className || '').toLowerCase();
-                    if (cls.includes('aside') || cls.includes('scaffold-layout__aside')) return true;
-                    el = el.parentElement;
+                if (!el) return false;
+
+                // Exact ancestor checks only; avoid substring false positives from random class names.
+                if (el.closest('aside')) return true;
+
+                var cur = el;
+                for (var i = 0; i < 14 && cur; i++) {
+                    var cls = cur.classList;
+                    if (cls && (cls.contains('scaffold-layout__aside') || cls.contains('pv-profile-layout__aside'))) {
+                        return true;
+                    }
+                    var idv = (cur.id || '').toLowerCase();
+                    if (idv === 'aside' || idv.includes('right-rail')) {
+                        return true;
+                    }
+                    cur = cur.parentElement;
                 }
                 return false;
             """, element)
         except Exception:
             return False
+
+    def _safe_click(self, element):
+        """Best-effort click that handles overlays/intercepted clicks."""
+        try:
+            self.driver.execute_script("arguments[0].scrollIntoView({block:'center'});", element)
+            time.sleep(0.3)
+        except Exception:
+            pass
+
+        try:
+            element.click()
+            return True
+        except Exception:
+            pass
+
+        try:
+            self.driver.execute_script("arguments[0].click();", element)
+            return True
+        except Exception:
+            return False
+
+    def _debug_connect_candidates(self, limit=20):
+        """Print a compact audit of visible connect-like controls for debugging."""
+        try:
+            data = self.driver.execute_script(
+                """
+                const out = [];
+                const nodes = Array.from(document.querySelectorAll('main a, main button, main [role="button"], main [role="menuitem"]'));
+                const isVisible = (el) => {
+                  const style = window.getComputedStyle(el);
+                  const rect = el.getBoundingClientRect();
+                  return style && style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
+                };
+                for (const el of nodes) {
+                  if (!isVisible(el)) continue;
+                  const txt = (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ');
+                  const aria = (el.getAttribute('aria-label') || '').trim();
+                  const href = (el.getAttribute('href') || '').trim();
+                  const cls = (el.className || '').toString();
+                  const low = (txt + ' ' + aria + ' ' + href).toLowerCase();
+                  if (!low.includes('connect') && !low.includes('invite') && !href.includes('/preload/custom-invite/')) continue;
+                  const inAside = !!el.closest('aside, .scaffold-layout__aside');
+                  const rect = el.getBoundingClientRect();
+                  out.push({
+                    tag: (el.tagName || '').toLowerCase(),
+                    role: (el.getAttribute('role') || '').toLowerCase(),
+                    text: txt,
+                    aria: aria,
+                    href: href,
+                    inAside: inAside,
+                    y: Math.round(rect.top),
+                    cls: cls.slice(0, 140)
+                  });
+                }
+                out.sort((a, b) => a.y - b.y);
+                return out.slice(0, arguments[0]);
+                """,
+                int(limit),
+            )
+            if data:
+                print(f"[DEBUG] Connect-like visible candidates ({len(data)}):")
+                for i, item in enumerate(data, 1):
+                    print(
+                        f"  {i:02d}. tag={item.get('tag')} role={item.get('role')} y={item.get('y')} "
+                        f"aside={item.get('inAside')} text='{item.get('text')}' aria='{item.get('aria')}' href='{item.get('href')}'"
+                    )
+            else:
+                print("[DEBUG] No visible connect-like candidates found in <main>.")
+        except Exception:
+            pass
 
     def _find_connect_button_direct(self):
         """
@@ -139,10 +221,43 @@ class LinkedInConnectionBot:
             except Exception:
                 return False
 
+        # Give the top-card actions a short moment to render before scanning.
+        try:
+            WebDriverWait(self.driver, 6).until(
+                lambda d: len(
+                    d.find_elements(
+                        By.XPATH,
+                        "//main//button["
+                        "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect') or "
+                        "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') or "
+                        ".//span[normalize-space(text())='Connect']"
+                        "]"
+                    )
+                ) > 0
+            )
+        except Exception:
+            pass
+
+        # Strategy 0: exact Connect button shape from provided HTML.
+        # Prefer a primary button that has invite-to-connect aria label, Connect text,
+        # and the connect icon marker used in top-card actions.
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//button["
+            "contains(@class,'artdeco-button--primary') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect') and "
+            ".//span[normalize-space(text())='Connect'] and "
+            ".//*[self::svg or self::use][contains(@data-test-icon,'connect-small') or contains(@href,'#connect-small')]"
+            "]"
+        ):
+            if valid(el):
+                return el
+
         # Strategy 1: artdeco-button--primary + "to connect" aria-label (exact shape from HTML)
         for el in self.driver.find_elements(
             By.XPATH,
-            "//button["
+            "//main//button["
             "contains(@class,'artdeco-button--primary') and "
             "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect')"
             "]"
@@ -150,10 +265,29 @@ class LinkedInConnectionBot:
             if valid(el):
                 return el
 
+        # Strategy 1b: direct custom invite anchor (common LinkedIn variant)
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//a[contains(@href,'/preload/custom-invite/') and (contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect') or contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect'))]"
+        ):
+            if valid(el):
+                return el
+
         # Strategy 2: any button with "to connect" in aria-label (no class filter)
         for el in self.driver.find_elements(
             By.XPATH,
-            "//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect')]"
+            "//main//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect')]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 2b: any button with both "invite" and "connect" in aria-label
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//button["
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')"
+            "]"
         ):
             if valid(el):
                 return el
@@ -161,7 +295,7 @@ class LinkedInConnectionBot:
         # Strategy 3: artdeco-button--primary whose span text is "Connect"
         for el in self.driver.find_elements(
             By.XPATH,
-            "//button["
+            "//main//button["
             "contains(@class,'artdeco-button--primary') and "
             ".//span[normalize-space(text())='Connect']"
             "]"
@@ -172,10 +306,85 @@ class LinkedInConnectionBot:
         # Strategy 4: any button whose span text is "Connect"
         for el in self.driver.find_elements(
             By.XPATH,
-            "//button[.//span[normalize-space(text())='Connect']]"
+            "//main//button[.//span[normalize-space(text())='Connect']]"
         ):
             if valid(el):
                 return el
+
+        # Strategy 4b: any anchor whose visible text contains "Connect"
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//a[contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 5: JS fallback for dynamic/obfuscated DOM variants.
+        # Prefer top-card action buttons, then any visible main button.
+        try:
+            candidate = self.driver.execute_script(
+                """
+                const inMain = document.querySelector('main') || document;
+                const buttons = Array.from(inMain.querySelectorAll('button'));
+                const isVisible = (el) => {
+                  const style = window.getComputedStyle(el);
+                  const rect = el.getBoundingClientRect();
+                  return style && style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
+                };
+                const isInAside = (el) => !!el.closest('aside, .scaffold-layout__aside');
+                const text = (el) => (el.innerText || el.textContent || '').trim().toLowerCase();
+                const label = (el) => (el.getAttribute('aria-label') || '').trim().toLowerCase();
+
+                const ranked = buttons.filter((b) => {
+                  const t = text(b);
+                  const l = label(b);
+                  return !isInAside(b) && isVisible(b) && (
+                    l.includes('to connect') ||
+                    (l.includes('invite') && l.includes('connect')) ||
+                    t === 'connect'
+                  );
+                });
+
+                const topCardHit = ranked.find((b) => {
+                  const card = b.closest('section.artdeco-card, .pv-top-card, .pv-profile-card');
+                  return !!card;
+                });
+
+                return topCardHit || ranked[0] || null;
+                """
+            )
+            if candidate and valid(candidate):
+                return candidate
+        except Exception:
+            pass
+
+        # Strategy 6: hard-pick visible top-most invite-to-connect button in <main>.
+        # This bypasses brittle XPath edge cases and returns the exact control from live DOM.
+        try:
+            candidate = self.driver.execute_script(
+                """
+                const inMain = document.querySelector('main') || document;
+                const isVisible = (el) => {
+                  const style = window.getComputedStyle(el);
+                  const rect = el.getBoundingClientRect();
+                  return style && style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
+                };
+                const buttons = Array.from(inMain.querySelectorAll('button'));
+                const hits = buttons.filter((b) => {
+                  if (!isVisible(b)) return false;
+                  if (b.closest('aside, .scaffold-layout__aside, .pv-profile-layout__aside')) return false;
+                  const label = (b.getAttribute('aria-label') || '').toLowerCase();
+                  const text = (b.innerText || b.textContent || '').trim().toLowerCase();
+                  return label.includes('invite') && label.includes('connect') && text.includes('connect');
+                });
+                hits.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+                return hits[0] || null;
+                """
+            )
+            if candidate:
+                return candidate
+        except Exception:
+            pass
 
         return None
 
@@ -231,10 +440,18 @@ class LinkedInConnectionBot:
         # artdeco-dropdown wrapper. Items are <div role="button"> or <li> children.
         # We look for any item whose text or aria-label contains "connect".
         dropdown_item_xpaths = [
+            # Most reliable: anchor custom invite URL in dropdown/popover
+            "//a[contains(@href,'/preload/custom-invite/') and (contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect') or contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect'))]",
+            # Menu items with Connect text
+            "//*[@role='menuitem'][contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')]",
             # <div role="button" aria-label="Invite X to connect"> (direct aria-label match)
             "//*[@role='button'][contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), 'to connect')]",
             # <div role="button"> containing a span with "Connect" text
             "//*[@role='button'][.//span[normalize-space(text())='Connect']]",
+            # <button> with invite/connect aria-label inside dropdown
+            "//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')]",
+            # <button> with visible Connect text inside dropdown
+            "//button[.//span[normalize-space(text())='Connect'] or normalize-space(text())='Connect']",
             # <li> containing "Connect" span (in case role is on the li)
             "//li[.//span[normalize-space(text())='Connect']]",
             # artdeco dropdown item class with Connect text
@@ -243,7 +460,7 @@ class LinkedInConnectionBot:
         for xpath in dropdown_item_xpaths:
             for el in self.driver.find_elements(By.XPATH, xpath):
                 try:
-                    if el.is_displayed():
+                    if el.is_displayed() and not self._is_in_sidebar(el):
                         return el
                 except Exception:
                     continue
@@ -255,6 +472,14 @@ class LinkedInConnectionBot:
         ):
             try:
                 if el.is_displayed():
+                    return el
+            except Exception:
+                continue
+
+        # Last resort 2: any visible custom invite anchor after dropdown click
+        for el in self.driver.find_elements(By.XPATH, "//a[contains(@href,'/preload/custom-invite/')]"):
+            try:
+                if el.is_displayed() and not self._is_in_sidebar(el):
                     return el
             except Exception:
                 continue
@@ -280,11 +505,30 @@ class LinkedInConnectionBot:
             pass
         time.sleep(2)
 
+        # Give the exact target button a brief chance to become interactable.
+        try:
+            WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "//main//button[contains(@class,'artdeco-button--primary') and contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect') and .//span[normalize-space(text())='Connect']]",
+                    )
+                )
+            )
+        except Exception:
+            pass
+
         el = self._find_connect_button_direct()
         if el:
             return el
 
-        return self._open_more_actions_and_find_connect()
+        el = self._open_more_actions_and_find_connect()
+        if el:
+            return el
+
+        # Print candidate details to make selector misses obvious at runtime.
+        self._debug_connect_candidates(limit=25)
+        return None
 
     def _click_send_button(self):
         """Click the Send invitation button. Returns 'success' or 'failed'."""
@@ -355,8 +599,15 @@ class LinkedInConnectionBot:
                 return "connect_not_found"
 
             # Check if it's an <a> with a custom-invite href — navigate directly
-            tag = connect_el.tag_name.lower()
-            href = connect_el.get_attribute("href") or ""
+            try:
+                tag = connect_el.tag_name.lower()
+                href = connect_el.get_attribute("href") or ""
+            except StaleElementReferenceException:
+                connect_el = self.discover_connect_button()
+                if connect_el is None:
+                    return "connect_not_found"
+                tag = connect_el.tag_name.lower()
+                href = connect_el.get_attribute("href") or ""
 
             self.driver.execute_script("arguments[0].scrollIntoView({block:'center'});", connect_el)
             time.sleep(0.4)
@@ -364,7 +615,8 @@ class LinkedInConnectionBot:
             if tag == "a" and "/preload/custom-invite/" in href:
                 self.driver.get(href)
             else:
-                self.driver.execute_script("arguments[0].click();", connect_el)
+                if not self._safe_click(connect_el):
+                    return "failed"
 
             self.human_delay(2, 3)
 
@@ -556,20 +808,26 @@ def main():
     EMAIL = LINKEDIN_USERNAME
     PASSWORD = LINKEDIN_PASSWORD
 
-    INPUT_CSV = "linkedin_profiles/extracted_profiles_keydata_04-07-26-09.csv"
+    INPUT_CSV = "linkedin_profiles/extracted_profiles_keydata_04-24-26-10.csv"
 
     MAX_REQUESTS = 200
 
-    NOTE_TEMPLATE = """Hi {name},
+#     NOTE_TEMPLATE = """Hi {name},
 
-I saw you're hiring for data roles at {about} and wanted to reach out.
+# I saw you're hiring for software roles and wanted to reach out.
 
-I'm a Data Engineer with 5 years of experience building scalable data pipelines across cloud and modern data stacks. I'd love to connect and see if my background aligns with your team's needs.
+# I'm a Data Engineer with 5 years of experience building scalable data pipelines across cloud and modern data stacks. I'd love to connect and see if my background aligns with your team's needs.
 
-I'm currently exploring new opportunities and would love to connect and learn more about the roles you're hiring for, as well as how my experience could align with your team's needs.
+# -Jay  
+# """
 
--Jay  
-"""
+#     NOTE_TEMPLATE = """Hi Ashika,
+
+# I stumbled on your profile and wanted to connect with you.
+
+# -Jay  
+# """
+
 
     bot = LinkedInConnectionBot(EMAIL, PASSWORD)
 

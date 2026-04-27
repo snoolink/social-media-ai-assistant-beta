@@ -585,7 +585,7 @@ if __name__ == "__main__":
     
     timestamp = datetime.now().strftime("%m-%d-%y-%H")
     
-    INPUT_CSV = f"linkedin_profiles/extracted_profiles_of_tech_recs_refined.csv"
+    INPUT_CSV = f"linkedin_profiles/extracted_profiles_of_tech_recs_04-24-26-20.csv"
     OUTPUT_CSV = f"linkedin_profiles/extracted_profiles_keydata_{timestamp}.csv"
     URL_COLUMN = "url"
     

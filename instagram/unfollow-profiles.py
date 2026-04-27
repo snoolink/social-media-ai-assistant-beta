@@ -13,7 +13,7 @@ import random
 from datetime import datetime
 
 # ======== CONFIGURATION ========
-CSV_FILE = "instagram-profiles/ig_commenters_2026-04-15.csv"  # Must contain column 'url'
+CSV_FILE = "instagram-profiles/ig_commenters_2026-04-16.csv"  # Must contain column 'url'
 DAILY_LIMIT = 200  # Maximum unfollows per day
 BREAK_AFTER = 13  # Take a break after this many unfollows
 MIN_BREAK_TIME = 6  # Minimum break time in seconds (1 minute)

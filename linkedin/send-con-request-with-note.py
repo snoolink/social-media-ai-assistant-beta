@@ -10,24 +10,16 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoSuchElementException,
+    StaleElementReferenceException,
+)
 import pandas as pd
 import time
 import random
-import logging
 from datetime import datetime
 from creds import LINKEDIN_USERNAME, LINKEDIN_PASSWORD
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('linkedin_automation.log'),
-        logging.StreamHandler()
-    ]
-)
 
 class LinkedInConnectionBot:
     def __init__(self, email, password):
@@ -35,386 +27,635 @@ class LinkedInConnectionBot:
         self.password = password
         self.driver = None
         self.wait = None
-        
+
     def setup_driver(self):
         options = webdriver.ChromeOptions()
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option('useAutomationExtension', False)
-        
         self.driver = webdriver.Chrome(options=options)
         self.wait = WebDriverWait(self.driver, 10)
         self.driver.maximize_window()
-        
+
     def login(self):
+        SUCCESS_URLS = ("feed", "mynetwork", "jobs", "messaging", "notifications", "in/", "linkedin.com/home")
+        FAILURE_URLS = ("login", "authwall", "signup", "uas/login")
+
         try:
-            logging.info("Navigating to LinkedIn login page...")
             self.driver.get('https://www.linkedin.com/login')
-            
             email_field = self.wait.until(EC.presence_of_element_located((By.ID, 'username')))
+            email_field.clear()
             email_field.send_keys(self.email)
-            
-            password_field = self.driver.find_element(By.ID, 'password')
+
+            password_field = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'password'))
+            )
+            password_field.clear()
             password_field.send_keys(self.password)
-            
-            login_button = self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
-            login_button.click()
-            
-            time.sleep(5)
-            
-            if "checkpoint" in self.driver.current_url or "challenge" in self.driver.current_url:
-                logging.warning("LinkedIn requires verification. Please complete it manually...")
-                input("Press Enter after completing verification...")
-            
-            if "feed" in self.driver.current_url or "mynetwork" in self.driver.current_url:
-                logging.info("✓ Login successful!")
-                return True
-            else:
-                logging.error("✗ Login may have failed. Please check manually.")
+
+            # JS click avoids any overlay issues
+            submit = self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
+            self.driver.execute_script("arguments[0].click();", submit)
+
+            # Wait up to 15s for the URL to leave the login page
+            try:
+                WebDriverWait(self.driver, 15).until(
+                    lambda d: not any(f in d.current_url for f in FAILURE_URLS)
+                )
+            except TimeoutException:
+                print(f"Login may have failed — still on: {self.driver.current_url}")
                 return False
-                
-        except Exception as e:
-            logging.error(f"Login error: {str(e)}")
+
+            # Handle verification / CAPTCHA checkpoint
+            if "checkpoint" in self.driver.current_url or "challenge" in self.driver.current_url:
+                print("LinkedIn requires verification. Complete it in the browser, then press Enter...")
+                input()
+                try:
+                    WebDriverWait(self.driver, 60).until(
+                        lambda d: "checkpoint" not in d.current_url and "challenge" not in d.current_url
+                    )
+                except TimeoutException:
+                    print(f"Still on checkpoint page: {self.driver.current_url}")
+                    return False
+                time.sleep(3)  # let page fully settle
+
+            current = self.driver.current_url
+            if any(s in current for s in SUCCESS_URLS):
+                print(f"Login successful: {current}")
+                return True
+
+            # Still on linkedin.com and not on a login/auth page — good enough
+            if "linkedin.com" in current and not any(f in current for f in FAILURE_URLS):
+                print(f"Login likely successful (landing page): {current}")
+                return True
+
+            print(f"Login failed — unexpected URL: {current}")
             return False
-    
+
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            return False
+
     def human_delay(self, min_seconds=2, max_seconds=5):
-        delay = random.uniform(min_seconds, max_seconds)
-        time.sleep(delay)
+        time.sleep(random.uniform(min_seconds, max_seconds))
 
-    def discover_connect_button(self):
-        """
-        Discover the Connect element on a LinkedIn profile page.
-
-        Key insight from inspecting real LinkedIn HTML:
-          - The Connect button is an <a> tag (NOT a <button>) with:
-              href="/preload/custom-invite/?vanityName=..."
-              aria-label="Invite <Name> to connect"
-          - It may appear directly in the top action bar, OR only inside
-            the "More actions" popover/dropdown (also an <a> with the same
-            href pattern).
-          - The "More actions" trigger is a <button> whose aria-label contains
-            "More actions" or whose visible text is "More".
-
-        Returns (element, method_string) or (None, None).
-        """
+    def _is_in_sidebar(self, element):
+        """Return True if the element lives in the aside/sidebar (recommendations)."""
         try:
-            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "main")))
-        except TimeoutException:
-            logging.warning("[DISCOVERY] <main> not found, continuing...")
+            return self.driver.execute_script("""
+                var el = arguments[0];
+                if (!el) return false;
 
-        time.sleep(2)
+                // Exact ancestor checks only; avoid substring false positives from random class names.
+                if (el.closest('aside')) return true;
 
-        # ------------------------------------------------------------------ #
-        # METHOD 1 — Direct <a href="/preload/custom-invite/..."> in top bar  #
-        # ------------------------------------------------------------------ #
-        # This is the most reliable selector: href starts with the invite path
-        candidates = self.driver.find_elements(
-            By.CSS_SELECTOR,
-            "a[href*='/preload/custom-invite/']"
-        )
-        logging.info(f"[DISCOVERY] Found {len(candidates)} <a> elements with custom-invite href")
+                var cur = el;
+                for (var i = 0; i < 14 && cur; i++) {
+                    var cls = cur.classList;
+                    if (cls && (cls.contains('scaffold-layout__aside') || cls.contains('pv-profile-layout__aside'))) {
+                        return true;
+                    }
+                    var idv = (cur.id || '').toLowerCase();
+                    if (idv === 'aside' || idv.includes('right-rail')) {
+                        return true;
+                    }
+                    cur = cur.parentElement;
+                }
+                return false;
+            """, element)
+        except Exception:
+            return False
 
-        for el in candidates:
+    def _safe_click(self, element):
+        """Best-effort click that handles overlays/intercepted clicks."""
+        try:
+            self.driver.execute_script("arguments[0].scrollIntoView({block:'center'});", element)
+            time.sleep(0.3)
+        except Exception:
+            pass
+
+        try:
+            element.click()
+            return True
+        except Exception:
+            pass
+
+        try:
+            self.driver.execute_script("arguments[0].click();", element)
+            return True
+        except Exception:
+            return False
+
+    def _debug_connect_candidates(self, limit=20):
+        """Print a compact audit of visible connect-like controls for debugging."""
+        try:
+            data = self.driver.execute_script(
+                """
+                const out = [];
+                const nodes = Array.from(document.querySelectorAll('main a, main button, main [role="button"], main [role="menuitem"]'));
+                const isVisible = (el) => {
+                  const style = window.getComputedStyle(el);
+                  const rect = el.getBoundingClientRect();
+                  return style && style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
+                };
+                for (const el of nodes) {
+                  if (!isVisible(el)) continue;
+                  const txt = (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ');
+                  const aria = (el.getAttribute('aria-label') || '').trim();
+                  const href = (el.getAttribute('href') || '').trim();
+                  const cls = (el.className || '').toString();
+                  const low = (txt + ' ' + aria + ' ' + href).toLowerCase();
+                  if (!low.includes('connect') && !low.includes('invite') && !href.includes('/preload/custom-invite/')) continue;
+                  const inAside = !!el.closest('aside, .scaffold-layout__aside');
+                  const rect = el.getBoundingClientRect();
+                  out.push({
+                    tag: (el.tagName || '').toLowerCase(),
+                    role: (el.getAttribute('role') || '').toLowerCase(),
+                    text: txt,
+                    aria: aria,
+                    href: href,
+                    inAside: inAside,
+                    y: Math.round(rect.top),
+                    cls: cls.slice(0, 140)
+                  });
+                }
+                out.sort((a, b) => a.y - b.y);
+                return out.slice(0, arguments[0]);
+                """,
+                int(limit),
+            )
+            if data:
+                print(f"[DEBUG] Connect-like visible candidates ({len(data)}):")
+                for i, item in enumerate(data, 1):
+                    print(
+                        f"  {i:02d}. tag={item.get('tag')} role={item.get('role')} y={item.get('y')} "
+                        f"aside={item.get('inAside')} text='{item.get('text')}' aria='{item.get('aria')}' href='{item.get('href')}'"
+                    )
+            else:
+                print("[DEBUG] No visible connect-like candidates found in <main>.")
+        except Exception:
+            pass
+
+    def _find_connect_button_direct(self):
+        """
+        Find the Connect button in the profile actions bar.
+
+        Target button shape (from live LinkedIn HTML):
+          <button aria-label="Invite X to connect"
+                  class="artdeco-button artdeco-button--2 artdeco-button--primary ...">
+            <span class="artdeco-button__text">Connect</span>
+          </button>
+
+        Strategies (tried in order, all skip sidebar elements):
+          1. PRIMARY button with "to connect" in aria-label  ← most precise
+          2. Any button with "to connect" in aria-label
+          3. PRIMARY button whose span text is exactly "Connect"
+          4. Any button whose span text is exactly "Connect"
+        """
+
+        def valid(el):
             try:
-                if not el.is_displayed():
-                    continue
-                label = el.get_attribute("aria-label") or ""
-                href  = el.get_attribute("href") or ""
-                logging.info(f"  → aria-label='{label}' href='{href[:80]}'")
-                if "invite" in label.lower() and "connect" in label.lower():
-                    if self._is_in_recommendation_section(el):
-                        logging.info("    (skipping — inside recommendation section)")
-                        continue
-                    logging.info(f"[DISCOVERY] ✓ Direct Connect <a> found (Method 1): '{label}'")
-                    return el, "direct_a_href"
+                return el.is_displayed() and not self._is_in_sidebar(el)
             except Exception:
-                continue
+                return False
 
-        # ------------------------------------------------------------------ #
-        # METHOD 2 — <a> or element whose visible text / span says "Connect" #
-        #            and is NOT in the sidebar                                #
-        # ------------------------------------------------------------------ #
-        connect_anchors = self.driver.find_elements(
+        # Give the top-card actions a short moment to render before scanning.
+        try:
+            WebDriverWait(self.driver, 6).until(
+                lambda d: len(
+                    d.find_elements(
+                        By.XPATH,
+                        "//main//button["
+                        "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect') or "
+                        "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') or "
+                        ".//span[normalize-space(text())='Connect']"
+                        "]"
+                    )
+                ) > 0
+            )
+        except Exception:
+            pass
+
+        # Strategy 0: exact Connect button shape from provided HTML.
+        # Prefer a primary button that has invite-to-connect aria label, Connect text,
+        # and the connect icon marker used in top-card actions.
+        for el in self.driver.find_elements(
             By.XPATH,
-            "//main//a[.//span[normalize-space(text())='Connect'] or normalize-space(text())='Connect']"
-        )
-        logging.info(f"[DISCOVERY] Found {len(connect_anchors)} <a> with 'Connect' text in <main>")
-        for el in connect_anchors:
-            try:
-                if not el.is_displayed():
-                    continue
-                if self._is_in_recommendation_section(el):
-                    continue
-                logging.info(f"[DISCOVERY] ✓ Connect <a> found by text (Method 2)")
-                return el, "direct_a_text"
-            except Exception:
-                continue
+            "//main//button["
+            "contains(@class,'artdeco-button--primary') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect') and "
+            ".//span[normalize-space(text())='Connect'] and "
+            ".//*[self::svg or self::use][contains(@data-test-icon,'connect-small') or contains(@href,'#connect-small')]"
+            "]"
+        ):
+            if valid(el):
+                return el
 
-        # ------------------------------------------------------------------ #
-        # METHOD 3 — "More actions" popover → Connect item inside it         #
-        # The popover is a <div popover="manual"> that contains an <a> with  #
-        # href="/preload/custom-invite/..." and aria-label "Invite … connect" #
-        # ------------------------------------------------------------------ #
-        logging.info("[DISCOVERY] Direct Connect not found. Trying 'More actions' popover...")
+        # Strategy 1: artdeco-button--primary + "to connect" aria-label (exact shape from HTML)
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//button["
+            "contains(@class,'artdeco-button--primary') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect')"
+            "]"
+        ):
+            if valid(el):
+                return el
 
-        # Find the More actions trigger button in the profile top area
+        # Strategy 1b: direct custom invite anchor (common LinkedIn variant)
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//a[contains(@href,'/preload/custom-invite/') and (contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect') or contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect'))]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 2: any button with "to connect" in aria-label (no class filter)
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect')]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 2b: any button with both "invite" and "connect" in aria-label
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//button["
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and "
+            "contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')"
+            "]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 3: artdeco-button--primary whose span text is "Connect"
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//button["
+            "contains(@class,'artdeco-button--primary') and "
+            ".//span[normalize-space(text())='Connect']"
+            "]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 4: any button whose span text is "Connect"
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//button[.//span[normalize-space(text())='Connect']]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 4b: any anchor whose visible text contains "Connect"
+        for el in self.driver.find_elements(
+            By.XPATH,
+            "//main//a[contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')]"
+        ):
+            if valid(el):
+                return el
+
+        # Strategy 5: JS fallback for dynamic/obfuscated DOM variants.
+        # Prefer top-card action buttons, then any visible main button.
+        try:
+            candidate = self.driver.execute_script(
+                """
+                const inMain = document.querySelector('main') || document;
+                const buttons = Array.from(inMain.querySelectorAll('button'));
+                const isVisible = (el) => {
+                  const style = window.getComputedStyle(el);
+                  const rect = el.getBoundingClientRect();
+                  return style && style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
+                };
+                const isInAside = (el) => !!el.closest('aside, .scaffold-layout__aside');
+                const text = (el) => (el.innerText || el.textContent || '').trim().toLowerCase();
+                const label = (el) => (el.getAttribute('aria-label') || '').trim().toLowerCase();
+
+                const ranked = buttons.filter((b) => {
+                  const t = text(b);
+                  const l = label(b);
+                  return !isInAside(b) && isVisible(b) && (
+                    l.includes('to connect') ||
+                    (l.includes('invite') && l.includes('connect')) ||
+                    t === 'connect'
+                  );
+                });
+
+                const topCardHit = ranked.find((b) => {
+                  const card = b.closest('section.artdeco-card, .pv-top-card, .pv-profile-card');
+                  return !!card;
+                });
+
+                return topCardHit || ranked[0] || null;
+                """
+            )
+            if candidate and valid(candidate):
+                return candidate
+        except Exception:
+            pass
+
+        # Strategy 6: hard-pick visible top-most invite-to-connect button in <main>.
+        # This bypasses brittle XPath edge cases and returns the exact control from live DOM.
+        try:
+            candidate = self.driver.execute_script(
+                """
+                const inMain = document.querySelector('main') || document;
+                const isVisible = (el) => {
+                  const style = window.getComputedStyle(el);
+                  const rect = el.getBoundingClientRect();
+                  return style && style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
+                };
+                const buttons = Array.from(inMain.querySelectorAll('button'));
+                const hits = buttons.filter((b) => {
+                  if (!isVisible(b)) return false;
+                  if (b.closest('aside, .scaffold-layout__aside, .pv-profile-layout__aside')) return false;
+                  const label = (b.getAttribute('aria-label') || '').toLowerCase();
+                  const text = (b.innerText || b.textContent || '').trim().toLowerCase();
+                  return label.includes('invite') && label.includes('connect') && text.includes('connect');
+                });
+                hits.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+                return hits[0] || null;
+                """
+            )
+            if candidate:
+                return candidate
+        except Exception:
+            pass
+
+        return None
+
+    def _open_more_actions_and_find_connect(self):
+        """
+        Fallback: the Connect option is hidden inside the 'More actions' dropdown.
+        From the real HTML the dropdown items are <div role="button"> inside <li> tags,
+        NOT <button> elements — so we target those specifically.
+
+        The dropdown trigger is:
+          <button aria-label="More actions" class="artdeco-dropdown__trigger ...">
+        After clicking it the content div loses aria-hidden="true".
+        Connect inside the dropdown would be a <div role="button"> or <li> with
+        "Connect" text (same pattern as "Follow", "Save to PDF" etc. in the HTML).
+        """
+        # Find the More actions trigger that is NOT in the sidebar
         more_btn = None
-
-        # Audit all buttons so we can see what's on the page
-        all_buttons = self.driver.find_elements(By.TAG_NAME, "button")
-        logging.info(f"[DISCOVERY] Auditing {len(all_buttons)} buttons for 'More actions'...")
-        for i, btn in enumerate(all_buttons):
+        for btn in self.driver.find_elements(
+            By.XPATH, "//button[@aria-label='More actions']"
+        ):
             try:
-                label = btn.get_attribute("aria-label") or ""
-                text  = btn.text.strip()
-                vis   = btn.is_displayed()
-                logging.info(f"  btn[{i}] vis={vis} label='{label}' text='{text}'")
-                if not vis:
-                    continue
-                if "more actions" in label.lower() or text.lower() in ("more", "…", "..."):
-                    if not self._is_in_recommendation_section(btn):
-                        more_btn = btn
-                        logging.info(f"[DISCOVERY] Found 'More actions' button: label='{label}' text='{text}'")
-                        break
+                if btn.is_displayed() and not self._is_in_sidebar(btn):
+                    more_btn = btn
+                    break
             except Exception:
                 continue
+
+        # Fallback label scan
+        if more_btn is None:
+            for btn in self.driver.find_elements(By.TAG_NAME, "button"):
+                try:
+                    if not btn.is_displayed():
+                        continue
+                    label = (btn.get_attribute("aria-label") or "").lower()
+                    if "more actions" in label and not self._is_in_sidebar(btn):
+                        more_btn = btn
+                        break
+                except Exception:
+                    continue
 
         if more_btn is None:
-            logging.warning("[DISCOVERY] 'More actions' button not found.")
-            return None, None
+            return None
 
-        # Click it
         try:
             self.driver.execute_script("arguments[0].scrollIntoView({block:'center'});", more_btn)
             time.sleep(0.4)
             self.driver.execute_script("arguments[0].click();", more_btn)
             time.sleep(1.5)
-        except Exception as e:
-            logging.error(f"[DISCOVERY] Could not click More actions: {e}")
-            return None, None
+        except Exception:
+            return None
 
-        # The popover is a div with popover="manual" — wait for it to appear
-        # Then look for the custom-invite <a> inside it
-        try:
-            popover = WebDriverWait(self.driver, 5).until(
-                EC.visibility_of_element_located(
-                    (By.CSS_SELECTOR, "div[popover='manual'] a[href*='/preload/custom-invite/']")
-                )
-            )
-            label = popover.get_attribute("aria-label") or ""
-            logging.info(f"[DISCOVERY] ✓ Connect <a> found in popover (Method 3): '{label}'")
-            return popover, "popover_a_href"
-        except TimeoutException:
-            pass
-
-        # Fallback: scan all newly visible <a> elements for custom-invite href
-        all_anchors = self.driver.find_elements(By.CSS_SELECTOR, "a[href*='/preload/custom-invite/']")
-        for el in all_anchors:
-            try:
-                if not el.is_displayed():
+        # The dropdown is the sibling div.artdeco-dropdown__content inside the same
+        # artdeco-dropdown wrapper. Items are <div role="button"> or <li> children.
+        # We look for any item whose text or aria-label contains "connect".
+        dropdown_item_xpaths = [
+            # Most reliable: anchor custom invite URL in dropdown/popover
+            "//a[contains(@href,'/preload/custom-invite/') and (contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect') or contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect'))]",
+            # Menu items with Connect text
+            "//*[@role='menuitem'][contains(translate(normalize-space(string(.)),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')]",
+            # <div role="button" aria-label="Invite X to connect"> (direct aria-label match)
+            "//*[@role='button'][contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), 'to connect')]",
+            # <div role="button"> containing a span with "Connect" text
+            "//*[@role='button'][.//span[normalize-space(text())='Connect']]",
+            # <button> with invite/connect aria-label inside dropdown
+            "//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'connect')]",
+            # <button> with visible Connect text inside dropdown
+            "//button[.//span[normalize-space(text())='Connect'] or normalize-space(text())='Connect']",
+            # <li> containing "Connect" span (in case role is on the li)
+            "//li[.//span[normalize-space(text())='Connect']]",
+            # artdeco dropdown item class with Connect text
+            "//*[contains(@class,'artdeco-dropdown__item')][.//span[normalize-space(text())='Connect']]",
+        ]
+        for xpath in dropdown_item_xpaths:
+            for el in self.driver.find_elements(By.XPATH, xpath):
+                try:
+                    if el.is_displayed() and not self._is_in_sidebar(el):
+                        return el
+                except Exception:
                     continue
-                label = el.get_attribute("aria-label") or ""
-                logging.info(f"[DISCOVERY] ✓ Connect <a> found after popover open (fallback): '{label}'")
-                return el, "popover_fallback"
-            except Exception:
-                continue
 
-        # Also check for <div role="menuitem"> or <a role="menuitem"> with "Connect" text
-        menu_items = self.driver.find_elements(
+        # Last resort: any newly visible button with "to connect" in aria-label
+        for el in self.driver.find_elements(
             By.XPATH,
-            "//*[@role='menuitem'][.//p[normalize-space(text())='Connect'] or normalize-space(text())='Connect']"
-        )
-        for el in menu_items:
+            "//button[contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), 'to connect')]"
+        ):
             try:
                 if el.is_displayed():
-                    logging.info(f"[DISCOVERY] ✓ Connect menuitem found (Method 3b)")
-                    return el, "popover_menuitem"
+                    return el
             except Exception:
                 continue
 
-        logging.warning("[DISCOVERY] Connect not found in popover/dropdown either.")
-        from selenium.webdriver.common.keys import Keys
+        # Last resort 2: any visible custom invite anchor after dropdown click
+        for el in self.driver.find_elements(By.XPATH, "//a[contains(@href,'/preload/custom-invite/')]"):
+            try:
+                if el.is_displayed() and not self._is_in_sidebar(el):
+                    return el
+            except Exception:
+                continue
+
+        # Close dropdown and give up
         try:
+            from selenium.webdriver.common.keys import Keys
             self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
         except Exception:
             pass
 
-        return None, None
+        return None
 
-    def _is_in_recommendation_section(self, element):
-        """Check if element is inside a recommendation/suggested people section."""
+    def discover_connect_button(self):
+        """
+        Returns the Connect element or None.
+        Waits for the profile to load, then tries direct detection first,
+        falling back to the More actions dropdown.
+        """
         try:
-            # Walk up ancestors to find section text
-            script = """
-                var el = arguments[0];
-                var depth = 0;
-                while (el && depth < 10) {
-                    var text = (el.getAttribute('aria-label') || el.getAttribute('data-test-id') || el.id || '').toLowerCase();
-                    if (text.includes('people you may know') || text.includes('more profiles') || text.includes('people also viewed')) {
-                        return true;
-                    }
-                    // Check class names
-                    var cls = (el.className || '').toLowerCase();
-                    if (cls.includes('aside') || cls.includes('scaffold-layout__aside')) {
-                        return true;
-                    }
-                    el = el.parentElement;
-                    depth++;
-                }
-                return false;
-            """
-            return self.driver.execute_script(script, element)
-        except Exception:
-            return False
+            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "main")))
+        except TimeoutException:
+            pass
+        time.sleep(2)
 
-    def create_personalized_note(self, profile_data, note_template):
+        # Give the exact target button a brief chance to become interactable.
         try:
-            full_name = profile_data.get('name', 'there')
-            about_full = profile_data.get('about', 'your field')
-            headline = profile_data.get('headline', '')
-            current_position = profile_data.get('current_position', '')
-            current_company = profile_data.get('current_company', '')
-            
-            name = full_name.split()[0] if full_name and full_name.strip() else 'there'
-            
-            if not about_full or pd.isna(about_full) or str(about_full).strip() == '':
-                if current_position and current_company:
-                    about_full = f"{current_position} at {current_company}"
-                elif headline:
-                    about_full = headline
-                else:
-                    about_full = "your professional journey"
-            
-            about_words = str(about_full).split()
-            about = ' '.join(about_words[:2]) if len(about_words) >= 2 else about_full
-            
-            personalized_note = note_template.format(
-                name=name,
-                about=about,
-                headline=headline,
-                current_position=current_position,
-                current_company=current_company,
-                location=profile_data.get('location', ''),
-                connections=profile_data.get('connections', '')
+            WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "//main//button[contains(@class,'artdeco-button--primary') and contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'invite') and contains(translate(@aria-label,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'to connect') and .//span[normalize-space(text())='Connect']]",
+                    )
+                )
             )
-            
-            if len(personalized_note) > 300:
-                logging.warning(f"Note too long ({len(personalized_note)} chars), truncating...")
-                personalized_note = personalized_note[:297] + "..."
-            
-            return personalized_note
-            
-        except Exception as e:
-            logging.error(f"Error creating personalized note: {e}")
-            return note_template
-    
+        except Exception:
+            pass
+
+        el = self._find_connect_button_direct()
+        if el:
+            return el
+
+        el = self._open_more_actions_and_find_connect()
+        if el:
+            return el
+
+        # Print candidate details to make selector misses obvious at runtime.
+        self._debug_connect_candidates(limit=25)
+        return None
+
+    def _click_send_button(self):
+        """Click the Send invitation button. Returns 'success' or 'failed'."""
+        # Primary: exact aria-label match
+        try:
+            send_btn = WebDriverWait(self.driver, 8).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "button[aria-label='Send invitation']"))
+            )
+            self.driver.execute_script("arguments[0].click();", send_btn)
+            self.human_delay(3, 5)
+            return "success"
+        except TimeoutException:
+            pass
+
+        # Fallback: scan all visible buttons for send-like text
+        send_btn = None
+        for btn in self.driver.find_elements(By.TAG_NAME, "button"):
+            try:
+                if not btn.is_displayed():
+                    continue
+                label = (btn.get_attribute("aria-label") or "").strip().lower()
+                text = btn.text.strip().lower()
+                if text in ("send", "send now", "send invitation") or label in ("send", "send now", "send invitation"):
+                    send_btn = btn
+                    break
+                if "send" in text and "message" not in text:
+                    send_btn = send_btn or btn
+            except Exception:
+                continue
+
+        if send_btn:
+            self.driver.execute_script("arguments[0].click();", send_btn)
+            self.human_delay(3, 5)
+            return "success"
+
+        # XPath fallback
+        try:
+            el = self.driver.find_element(
+                By.XPATH,
+                "//*[self::button or self::a][normalize-space(.)='Send' or normalize-space(.)='Send invitation']"
+            )
+            if el.is_displayed():
+                self.driver.execute_script("arguments[0].click();", el)
+                self.human_delay(3, 5)
+                return "success"
+        except NoSuchElementException:
+            pass
+
+        return "failed"
+
     def send_connection_request(self, profile_url, note=None):
         """
-        Send a connection request to a LinkedIn profile.
+        Visit a profile URL and send a connection request with an optional note.
 
-        LinkedIn's Connect flow (as of 2025):
-          1. The Connect element is an <a href="/preload/custom-invite/?vanityName=...">
-             Clicking it navigates to a new page — the custom invite / note page.
-          2. On that page there is a textarea for the optional note and a Send button.
-          3. If Connect is not in the top action bar it lives inside a popover triggered
-             by the "More actions" button (same <a> href pattern inside the popover).
+        Flow:
+          1. Find and click the Connect button (button with aria-label "Invite X to connect")
+          2. After clicking, handle either:
+             A. Navigation to a /preload/custom-invite/ page (dedicated invite page)
+             B. A modal dialog opening in place
+          3. Optionally add a note, then click Send.
         """
         try:
-            logging.info(f"Visiting profile: {profile_url}")
             self.driver.get(profile_url)
             self.human_delay(3, 5)
 
-            # ---------------------------------------------------------------- #
-            # STEP 1 — Discover and click the Connect element                  #
-            # ---------------------------------------------------------------- #
-            connect_el, method = self.discover_connect_button()
-
+            connect_el = self.discover_connect_button()
             if connect_el is None:
-                logging.warning(f"[SEND] Connect element not found for {profile_url}")
                 return "connect_not_found"
 
-            connect_href = connect_el.get_attribute("href") or ""
-            logging.info(f"[SEND] Clicking Connect element (method={method}) href='{connect_href[:80]}'")
+            # Check if it's an <a> with a custom-invite href — navigate directly
+            try:
+                tag = connect_el.tag_name.lower()
+                href = connect_el.get_attribute("href") or ""
+            except StaleElementReferenceException:
+                connect_el = self.discover_connect_button()
+                if connect_el is None:
+                    return "connect_not_found"
+                tag = connect_el.tag_name.lower()
+                href = connect_el.get_attribute("href") or ""
 
             self.driver.execute_script("arguments[0].scrollIntoView({block:'center'});", connect_el)
             time.sleep(0.4)
 
-            # Navigate directly via href if it's a /preload/custom-invite/ link —
-            # this is more reliable than clicking an <a> that may be intercepted.
-            if "/preload/custom-invite/" in connect_href:
-                logging.info("[SEND] Navigating directly to custom-invite URL...")
-                self.driver.get(connect_href)
+            if tag == "a" and "/preload/custom-invite/" in href:
+                self.driver.get(href)
             else:
-                self.driver.execute_script("arguments[0].click();", connect_el)
+                if not self._safe_click(connect_el):
+                    return "failed"
 
             self.human_delay(2, 3)
 
-            # ---------------------------------------------------------------- #
-            # STEP 2 — We are now on the custom-invite page OR a modal opened  #
-            # Detect which case we're in.                                      #
-            # ---------------------------------------------------------------- #
             current_url = self.driver.current_url
-            logging.info(f"[SEND] Current URL after click: {current_url}")
-
             on_invite_page = "custom-invite" in current_url or "preload" in current_url
 
             if on_invite_page:
-                # ---- CASE A: Dedicated invite page ---- #
-                logging.info("[SEND] On custom-invite page.")
-
+                # --- Dedicated invite page ---
                 if note:
-                    # Click "Add a note" button first — aria-label="Add a note"
                     try:
                         add_note_btn = WebDriverWait(self.driver, 8).until(
-                            EC.element_to_be_clickable(
-                                (By.CSS_SELECTOR, "button[aria-label='Add a note']")
-                            )
+                            EC.element_to_be_clickable((By.CSS_SELECTOR, "button[aria-label='Add a note']"))
                         )
                         self.driver.execute_script("arguments[0].click();", add_note_btn)
-                        logging.info("[SEND] Clicked 'Add a note' button.")
                         self.human_delay(0.8, 1.2)
 
-                        # Now type into the textarea that appears
                         textarea = WebDriverWait(self.driver, 8).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, "textarea"))
                         )
                         textarea.clear()
                         textarea.send_keys(note)
-                        logging.info(f"[SEND] Note entered ({len(note)} chars).")
                         self.human_delay(0.8, 1.2)
-
                     except TimeoutException:
-                        logging.warning("[SEND] 'Add a note' button or textarea not found; sending without note.")
+                        pass  # Send without note
 
-                # Click "Send invitation" — aria-label="Send invitation", button text="Send"
                 return self._click_send_button()
 
             else:
-                # ---- CASE B: Modal appeared (fallback / older flow) ---- #
+                # --- Modal flow ---
                 try:
                     modal = WebDriverWait(self.driver, 6).until(
-                        EC.presence_of_element_located(
-                            (By.CSS_SELECTOR, "[role='dialog'], [aria-modal='true']")
-                        )
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "[role='dialog'], [aria-modal='true']"))
                     )
-                    logging.info("[SEND] Modal detected.")
                 except TimeoutException:
-                    logging.warning("[SEND] No modal and not on invite page — may have sent directly.")
+                    # No modal and not on invite page — may have sent directly (no-note fast path)
                     return "success"
 
-                # Audit modal buttons
-                modal_buttons = modal.find_elements(By.TAG_NAME, "button")
-                logging.info(f"[SEND] Modal has {len(modal_buttons)} buttons:")
-                for i, b in enumerate(modal_buttons):
-                    try:
-                        logging.info(f"  modal_btn[{i}] label='{b.get_attribute('aria-label')}' text='{b.text.strip()}'")
-                    except Exception:
-                        pass
-
-                # Click "Add a note" if note provided
                 if note:
-                    for btn in modal_buttons:
+                    for btn in modal.find_elements(By.TAG_NAME, "button"):
                         try:
                             lbl = (btn.get_attribute("aria-label") or "").lower()
                             txt = btn.text.strip().lower()
@@ -426,7 +667,6 @@ class LinkedInConnectionBot:
                                 )
                                 textarea.clear()
                                 textarea.send_keys(note)
-                                logging.info(f"[SEND] Note entered in modal ({len(note)} chars)")
                                 self.human_delay(0.8, 1.2)
                                 break
                         except Exception:
@@ -435,169 +675,131 @@ class LinkedInConnectionBot:
                 return self._click_send_button()
 
         except Exception as e:
-            logging.error(f"[SEND] Error for {profile_url}: {e}")
             import traceback
             traceback.print_exc()
             return "failed"
 
-    def _click_send_button(self):
-        """
-        Find and click the Send invitation button.
-        Targets aria-label='Send invitation' first (most stable), then falls back.
-        Returns 'success' or 'failed'.
-        """
-        # Primary: aria-label="Send invitation" (the exact label LinkedIn uses)
+    def create_personalized_note(self, profile_data, note_template):
         try:
-            send_btn = WebDriverWait(self.driver, 8).until(
-                EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, "button[aria-label='Send invitation']")
-                )
+            full_name = profile_data.get('name', 'there')
+            about_full = profile_data.get('about', '')
+            headline = profile_data.get('headline', '')
+            current_position = profile_data.get('current_position', '')
+            current_company = profile_data.get('current_company', '')
+
+            name = full_name.split()[0] if full_name and full_name.strip() else 'there'
+
+            if not about_full or pd.isna(about_full) or str(about_full).strip() == '':
+                if current_position and current_company:
+                    about_full = f"{current_position} at {current_company}"
+                elif headline:
+                    about_full = headline
+                else:
+                    about_full = "your professional journey"
+
+            about_words = str(about_full).split()
+            about = ' '.join(about_words[:2]) if len(about_words) >= 2 else about_full
+
+            personalized_note = note_template.format(
+                name=name,
+                about=about,
+                headline=headline,
+                current_position=current_position,
+                current_company=current_company,
+                location=profile_data.get('location', ''),
+                connections=profile_data.get('connections', '')
             )
-            self.driver.execute_script("arguments[0].click();", send_btn)
-            logging.info("[SEND] ✓ Clicked 'Send invitation' (aria-label match).")
-            self.human_delay(3, 5)
-            return "success"
-        except TimeoutException:
-            logging.warning("[SEND] button[aria-label='Send invitation'] not found, trying fallbacks...")
 
-        # Fallback 1: button whose visible text is exactly "Send"
-        all_buttons = self.driver.find_elements(By.TAG_NAME, "button")
-        logging.info(f"[SEND] Scanning {len(all_buttons)} buttons for Send...")
-        send_btn = None
-        for btn in all_buttons:
-            try:
-                if not btn.is_displayed():
-                    continue
-                label = (btn.get_attribute("aria-label") or "").strip()
-                text  = btn.text.strip()
-                logging.info(f"  btn aria-label='{label}' text='{text}'")
-                if text.lower() in ("send", "send now", "send invitation") or \
-                   label.lower() in ("send", "send now", "send invitation"):
-                    send_btn = btn
-                    break
-                # Partial — avoid "Send a message" etc.
-                if "send" in text.lower() and "message" not in text.lower():
-                    send_btn = send_btn or btn
-            except Exception:
-                continue
+            if len(personalized_note) > 300:
+                personalized_note = personalized_note[:297] + "..."
 
-        if send_btn:
-            self.driver.execute_script("arguments[0].click();", send_btn)
-            logging.info(f"[SEND] ✓ Clicked Send button: '{send_btn.text.strip()}'")
-            self.human_delay(3, 5)
-            return "success"
-
-        # Fallback 2: any clickable element whose text is "Send" or "Send invitation"
-        try:
-            send_el = self.driver.find_element(
-                By.XPATH,
-                "//*[self::button or self::a]"
-                "[normalize-space(.)='Send' or normalize-space(.)='Send invitation']"
-            )
-            if send_el.is_displayed():
-                self.driver.execute_script("arguments[0].click();", send_el)
-                logging.info("[SEND] ✓ Clicked Send (XPath fallback).")
-                self.human_delay(3, 5)
-                return "success"
-        except NoSuchElementException:
-            pass
-
-        logging.error("[SEND] Could not find Send button by any method.")
-        try:
-            logging.debug(f"Page source snippet:\n{self.driver.page_source[:3000]}")
+            return personalized_note
         except Exception:
-            pass
-        return "failed"
-    
+            return note_template
+
     def process_csv_profiles(self, csv_file, note_template, max_requests=20):
         try:
-            logging.info(f"Reading profiles from {csv_file}...")
             df = pd.read_csv(csv_file)
-            
+
             if 'profile_url' not in df.columns:
-                logging.error("CSV must contain 'profile_url' column!")
+                print("CSV must contain 'profile_url' column!")
                 return None
-            
+
             for col in ['connection_date', 'connection_note', 'connection_status']:
                 if col not in df.columns:
                     df[col] = ''
-            
-            df['connection_date'] = df['connection_date'].astype(str).str.strip().replace('nan', '')
-            df['connection_note'] = df['connection_note'].astype(str).str.strip().replace('nan', '')
-            df['connection_status'] = df['connection_status'].astype(str).str.strip().replace('nan', '')
-            
+
+            for col in ['connection_date', 'connection_note', 'connection_status']:
+                df[col] = df[col].astype(str).str.strip().replace('nan', '')
+
             unprocessed_mask = (
-                (df['connection_date'] == '') & 
-                (df['connection_note'] == '') & 
+                (df['connection_date'] == '') &
+                (df['connection_note'] == '') &
                 (df['connection_status'] == '')
             )
-            
+
             processed_count = (~unprocessed_mask).sum()
             total_profiles = len(df)
             remaining_profiles = unprocessed_mask.sum()
-            
-            logging.info(f"Total: {total_profiles} | Already processed: {processed_count} | Remaining: {remaining_profiles}")
-            
+
+            print(f"Total: {total_profiles} | Already processed: {processed_count} | Remaining: {remaining_profiles}")
+
             if remaining_profiles == 0:
-                logging.info("All profiles have been processed!")
+                print("All profiles have been processed!")
                 return df
-            
+
             successful = failed = skipped = connect_not_found = requests_sent = 0
-            
+
             for idx, row in df.iterrows():
                 if not unprocessed_mask[idx]:
                     continue
-                
                 if requests_sent >= max_requests:
                     skipped = remaining_profiles - requests_sent
                     break
-                
+
                 profile_url = row['profile_url']
-                logging.info(f"\n{'='*70}")
-                logging.info(f"Profile {idx + 1}/{total_profiles} | Run: {requests_sent + 1}/{min(max_requests, remaining_profiles)}")
-                logging.info(f"{'='*70}")
-                
+                print(f"\n{'='*60}")
+                print(f"Profile {idx + 1}/{total_profiles} | Run: {requests_sent + 1}/{min(max_requests, remaining_profiles)}")
+                print(f"URL: {profile_url}")
+
                 personalized_note = self.create_personalized_note(row.to_dict(), note_template)
-                logging.info(f"Note preview:\n{personalized_note}\n")
-                
+                print(f"Note preview:\n{personalized_note}")
+
                 result = self.send_connection_request(profile_url, personalized_note)
-                
+                print(f"Result: {result}")
+
                 df.at[idx, 'connection_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 df.at[idx, 'connection_note'] = personalized_note
                 df.at[idx, 'connection_status'] = result
-                
+
                 if result == "success":
                     successful += 1
                 elif result == "connect_not_found":
                     connect_not_found += 1
                 else:
                     failed += 1
-                
+
                 requests_sent += 1
                 df.to_csv(csv_file, index=False, encoding='utf-8')
-                logging.info(f"Progress saved to {csv_file}")
-                
+
                 if requests_sent % 5 == 0 and requests_sent < remaining_profiles:
-                    logging.info("Taking a longer break to avoid detection...")
+                    print("Taking a longer break...")
                     self.human_delay(30, 60)
                 elif requests_sent < remaining_profiles:
                     self.human_delay(5, 10)
-            
-            logging.info(f"\n{'='*70}")
-            logging.info(f"SUMMARY: ✓ Success={successful} | ⊘ Not found={connect_not_found} | ✗ Failed={failed} | Skipped={skipped}")
-            logging.info(f"{'='*70}\n")
-            
+
+            print(f"\n{'='*60}")
+            print(f"SUMMARY: Success={successful} | Not found={connect_not_found} | Failed={failed} | Skipped={skipped}")
+
             return df
-            
+
         except Exception as e:
-            logging.error(f"Error processing CSV: {str(e)}")
             import traceback
             traceback.print_exc()
             return None
-    
+
     def close(self):
         if self.driver:
-            logging.info("Closing browser in 5 seconds...")
             time.sleep(5)
             self.driver.quit()
 
@@ -605,40 +807,33 @@ class LinkedInConnectionBot:
 def main():
     EMAIL = LINKEDIN_USERNAME
     PASSWORD = LINKEDIN_PASSWORD
-    
-    INPUT_CSV = "linkedin_profiles/extracted_profiles_keydata_04-07-26-09.csv"
-    
+
+    INPUT_CSV = "linkedin_profiles/extracted_profiles_keydata_04-24-26-10.csv"
+
     MAX_REQUESTS = 200
-    
-#     NOTE_TEMPLATE = """Hi {name}, 
 
-# I discovered your product on Product Hunt and genuinely loved what you're building. 
+#     NOTE_TEMPLATE = """Hi {name},
 
-# I'm currently working on an AI-driven content curation and creation platform and would love to connect and exchange ideas.
+# I saw you're hiring for software roles and wanted to reach out.
 
-# Looking forward to connecting!
-# Cheers,
-# Jay
-# (www.snoolink.com)
+# I'm a Data Engineer with 5 years of experience building scalable data pipelines across cloud and modern data stacks. I'd love to connect and see if my background aligns with your team's needs.
+
+# -Jay  
 # """
 
-    NOTE_TEMPLATE = """Hi {name},
+#     NOTE_TEMPLATE = """Hi Ashika,
 
-I saw you’re hiring for data roles at {about} and wanted to reach out.
+# I stumbled on your profile and wanted to connect with you.
 
-I’m a Data Engineer with 5 years of experience building scalable data pipelines across cloud and modern data stacks. I’d love to connect and see if my background aligns with your team’s needs.
+# -Jay  
+# """
 
-I’m currently exploring new opportunities and would love to connect and learn more about the roles you’re hiring for, as well as how my experience could align with your team’s needs.
 
--Jay  
-"""
-
-    
     bot = LinkedInConnectionBot(EMAIL, PASSWORD)
-    
+
     try:
         bot.setup_driver()
-        
+
         if bot.login():
             results = bot.process_csv_profiles(
                 csv_file=INPUT_CSV,
@@ -646,19 +841,17 @@ I’m currently exploring new opportunities and would love to connect and learn 
                 max_requests=MAX_REQUESTS
             )
             if results is not None:
-                logging.info("✓ Process completed successfully!")
+                print("Process completed successfully!")
         else:
-            logging.error("✗ Login failed.")
-        
+            print("Login failed.")
+
     except KeyboardInterrupt:
-        logging.info("\n⚠ Script interrupted by user")
+        print("\nScript interrupted by user")
     except Exception as e:
-        logging.error(f"✗ An error occurred: {str(e)}")
         import traceback
         traceback.print_exc()
     finally:
         bot.close()
-
 
 if __name__ == "__main__":
     main()

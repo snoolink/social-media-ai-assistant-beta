@@ -81,7 +81,7 @@
     }
 
     // Build CSV
-    const csv = 'username,profile_url\n'
+    const csv = 'username,url\n'
       + [...usernames]
           .sort()
           .map(u => `${u},https://www.instagram.com/${u}/`)

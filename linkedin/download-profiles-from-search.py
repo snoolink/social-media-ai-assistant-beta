@@ -378,7 +378,7 @@ if __name__ == "__main__":
     # ========== Usage Examples ==========
     
     # Example 1: Extract profiles from a specific LinkedIn search page with pagination
-    page_url = "https://www.linkedin.com/search/results/people/?keywords=technical%20recruiters%20&origin=FACETED_SEARCH&network=%5B%22S%22%2C%22O%22%5D&geoUrn=%5B%22103644278%22%5D&activelyHiringForJobTitles=%5B%222732%22%2C%2225190%22%2C%22340%22%5D"
+    page_url = "https://www.linkedin.com/search/results/people/?keywords=co%20founder&origin=FACETED_SEARCH&geoUrn=%5B%22103644278%22%5D&activelyHiringForJobTitles=%5B%229%22%2C%2239%22%2C%222732%22%2C%2225190%22%5D"
     download_linkedin_profiles(
         csv_file=None,
         email=email, 
