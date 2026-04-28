@@ -16,3 +16,5 @@ selenium
 selenium-stealth
 streamlit
 webdriver-manager
+bs4
+docx
