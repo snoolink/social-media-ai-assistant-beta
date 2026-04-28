@@ -10,19 +10,128 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import TimeoutException
 import pandas as pd
 import time
 from datetime import datetime
 import os
 import json
+import re
+from urllib.parse import urlparse
 
 class LinkedInBatchScraper:
     def __init__(self, email, password):
         self.email = email
         self.password = password
         self.driver = None
+
+    @staticmethod
+    def normalize_linkedin_profile_url(url):
+        """Normalize LinkedIn profile URLs so resume/dedupe logic is reliable."""
+        if not isinstance(url, str):
+            return ''
+
+        trimmed = url.strip()
+        if not trimmed:
+            return ''
+
+        try:
+            parsed = urlparse(trimmed)
+            path = re.sub(r'/+', '/', parsed.path).rstrip('/')
+            return f"{parsed.scheme}://{parsed.netloc}{path}" if parsed.scheme and parsed.netloc else trimmed.rstrip('/')
+        except Exception:
+            return trimmed.rstrip('/')
+
+    @staticmethod
+    def _first_non_empty(values):
+        for value in values:
+            cleaned = str(value).strip()
+            if cleaned:
+                return cleaned
+        return ''
+
+    def _find_first_text(self, css_selectors=None, xpath_selectors=None, timeout=5):
+        """Return first non-empty text from any selector in order."""
+        wait = WebDriverWait(self.driver, timeout)
+
+        if css_selectors:
+            for selector in css_selectors:
+                try:
+                    elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+                    text = elem.text.strip()
+                    if text:
+                        return text
+                except TimeoutException:
+                    continue
+                except Exception:
+                    continue
+
+        if xpath_selectors:
+            for selector in xpath_selectors:
+                try:
+                    elem = wait.until(EC.presence_of_element_located((By.XPATH, selector)))
+                    text = elem.text.strip()
+                    if text:
+                        return text
+                except TimeoutException:
+                    continue
+                except Exception:
+                    continue
+
+        return ''
+
+    @staticmethod
+    def _extract_value_from_aria_label(label_text, expected_prefix):
+        """Extract value from labels like 'Current company: X. Click to ...'."""
+        if not isinstance(label_text, str):
+            return ''
+
+        lower = label_text.lower()
+        prefix = expected_prefix.lower()
+        if not lower.startswith(prefix):
+            return ''
+
+        after_prefix = label_text[len(expected_prefix):].strip()
+        value = after_prefix.split('. Click to', 1)[0].strip()
+        return value
+
+    def extract_company_and_university_from_highlights(self):
+        """Extract current company and university from top highlight list items."""
+        company = ''
+        university = ''
+
+        try:
+            buttons = self.driver.find_elements(By.CSS_SELECTOR, "main section ul li button[aria-label]")
+            for btn in buttons:
+                aria = btn.get_attribute("aria-label") or ''
+
+                if not company:
+                    company = self._extract_value_from_aria_label(aria, "Current company:")
+
+                if not university:
+                    university = self._extract_value_from_aria_label(aria, "Education:")
+
+                if company and university:
+                    break
+        except Exception:
+            pass
+
+        # Positional fallback based on the list structure shown in your HTML snippet.
+        if not company or not university:
+            try:
+                text_nodes = self.driver.find_elements(
+                    By.CSS_SELECTOR,
+                    "main section ul li button span div.inline-show-more-text[dir='ltr']"
+                )
+                values = [node.text.strip() for node in text_nodes if node.text and node.text.strip()]
+                if not company and len(values) >= 1:
+                    company = values[0]
+                if not university and len(values) >= 2:
+                    university = values[1]
+            except Exception:
+                pass
+
+        return company, university
         
     def setup_driver(self):
         """Initialize Chrome driver with options"""
@@ -97,9 +206,9 @@ class LinkedInBatchScraper:
             'profile_url': profile_url,
             'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'name': '',
-            'pronouns': '',
             'headline': '',
             'current_company': '',
+            'university': '',
             'location': '',
             'about': '',
             'connections': '',
@@ -113,179 +222,126 @@ class LinkedInBatchScraper:
             # Name
             try:
                 name_selectors = [
-                    "h2._50d2f93f._7fbfc969.aa2681d5.e5a8a44f._80760f21._5e96a778._8c4cb82e.b071448a._18fe8cac._1c02a242",
-                    "h2.text-heading-xlarge",
                     "h1.text-heading-xlarge",
                     "h1.inline.t-24.v-align-middle.break-words",
+                    "main h1",
                 ]
-                
-                name_element = None
-                for selector in name_selectors:
-                    try:
-                        name_element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
-                        break
-                    except:
-                        continue
-                
-                if name_element:
-                    profile_data['name'] = name_element.text.strip()
+
+                name_text = self._find_first_text(css_selectors=name_selectors, timeout=8)
+                if name_text:
+                    profile_data['name'] = name_text
                     profile_data['fields_extracted'].append('name')
                     print(f"✓ Found name: {profile_data['name']}")
             except Exception as e:
                 print(f"✗ Could not find name: {e}")
             
-            # Pronouns
-            try:
-                pronouns_selectors = [
-                    "p._50d2f93f._6302b07e.e5a8a44f._80760f21.dac53a5e._8c4cb82e.b071448a._080dc437.a533ef56._1c02a242",
-                ]
-                
-                for selector in pronouns_selectors:
-                    try:
-                        pronouns_elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                        for elem in pronouns_elements:
-                            text = elem.text.strip()
-                            if '/' in text and text not in ['· 1st', '· 2nd', '· 3rd']:
-                                profile_data['pronouns'] = text
-                                profile_data['fields_extracted'].append('pronouns')
-                                print(f"✓ Found pronouns: {profile_data['pronouns']}")
-                                break
-                        if profile_data['pronouns']:
-                            break
-                    except:
-                        continue
-            except Exception as e:
-                print(f"✗ Could not find pronouns: {e}")
-            
             # Connection degree
             try:
-                degree_selectors = [
-                    "p._50d2f93f._6302b07e.e5a8a44f._80760f21.dac53a5e._8c4cb82e.b071448a._080dc437._18fe8cac._1c02a242",
-                ]
-                
-                for selector in degree_selectors:
-                    try:
-                        degree_elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                        for elem in degree_elements:
-                            text = elem.text.strip()
-                            if text in ['· 1st', '· 2nd', '· 3rd']:
-                                profile_data['connection_degree'] = text.replace('·', '').strip()
-                                profile_data['fields_extracted'].append('connection_degree')
-                                print(f"✓ Found connection degree: {profile_data['connection_degree']}")
-                                break
-                        if profile_data['connection_degree']:
-                            break
-                    except:
-                        continue
+                page_text_snippets = [e.text.strip() for e in self.driver.find_elements(By.CSS_SELECTOR, "main section span, main section p")]
+                for snippet in page_text_snippets:
+                    clean = snippet.replace('·', '').strip()
+                    if clean in {'1st', '2nd', '3rd'}:
+                        profile_data['connection_degree'] = clean
+                        profile_data['fields_extracted'].append('connection_degree')
+                        print(f"✓ Found connection degree: {profile_data['connection_degree']}")
+                        break
             except Exception as e:
                 print(f"✗ Could not find connection degree: {e}")
             
             # Headline
             try:
-                headline_selectors = [
-                    "p._50d2f93f._85da35fc.e5a8a44f._80760f21.dac53a5e._8c4cb82e.b071448a._18fe8cac._1c02a242",
-                    "div.text-body-medium",
-                    "div.text-body-medium.break-words",
-                ]
-                
-                for selector in headline_selectors:
-                    try:
-                        headline = self.driver.find_element(By.CSS_SELECTOR, selector)
-                        profile_data['headline'] = headline.text.strip()
-                        profile_data['fields_extracted'].append('headline')
-                        print(f"✓ Found headline: {profile_data['headline'][:50]}...")
-                        break
-                    except:
-                        continue
+                headline = self._find_first_text(
+                    css_selectors=[
+                        "div.text-body-medium.break-words",
+                        "div.text-body-medium",
+                        "main section .pv-text-details__left-panel div.text-body-medium",
+                    ],
+                    xpath_selectors=["//main//div[contains(@class,'text-body-medium') and normalize-space()]"],
+                    timeout=6,
+                )
+                if headline:
+                    profile_data['headline'] = headline
+                    profile_data['fields_extracted'].append('headline')
+                    print(f"✓ Found headline: {profile_data['headline'][:50]}...")
             except Exception as e:
                 print(f"✗ Could not find headline: {e}")
+
+            # Company and University from top highlights list
+            try:
+                company_from_list, university_from_list = self.extract_company_and_university_from_highlights()
+
+                if company_from_list:
+                    profile_data['current_company'] = company_from_list
+                    if 'current_company' not in profile_data['fields_extracted']:
+                        profile_data['fields_extracted'].append('current_company')
+                    print(f"✓ Found company from highlights: {profile_data['current_company']}")
+
+                if university_from_list:
+                    profile_data['university'] = university_from_list
+                    profile_data['fields_extracted'].append('university')
+                    print(f"✓ Found university from highlights: {profile_data['university']}")
+            except Exception as e:
+                print(f"✗ Could not parse highlights list: {e}")
             
             # Current Company
             try:
-                company_selectors = [
-                    "p._50d2f93f._6302b07e.e5a8a44f._80760f21.dac53a5e._8c4cb82e.b071448a.d81d1e76._18fe8cac._1c02a242",
-                    "div.text-body-small.inline.t-black--light.break-words",
-                ]
-                
-                for selector in company_selectors:
-                    try:
-                        company = self.driver.find_element(By.CSS_SELECTOR, selector)
-                        profile_data['current_company'] = company.text.strip()
-                        profile_data['fields_extracted'].append('current_company')
+                if not profile_data['current_company']:
+                    company = self._find_first_text(
+                        css_selectors=[
+                            "div.text-body-small.inline.t-black--light.break-words",
+                            "main section .pv-text-details__left-panel div.text-body-small",
+                        ],
+                        timeout=5,
+                    )
+                    if company:
+                        profile_data['current_company'] = company
+                        if 'current_company' not in profile_data['fields_extracted']:
+                            profile_data['fields_extracted'].append('current_company')
                         print(f"✓ Found company: {profile_data['current_company']}")
-                        break
-                    except:
-                        continue
             except Exception as e:
                 print(f"✗ Could not find company: {e}")
             
             # Location
             try:
-                location_selectors = [
-                    "p._50d2f93f._6302b07e.aa2681d5.e5a8a44f._80760f21._5e96a778._8c4cb82e.b071448a.a533ef56._1c02a242",
-                    "span.text-body-small.inline.t-black--light.break-words",
+                location_candidates = [
+                    e.text.strip()
+                    for e in self.driver.find_elements(
+                        By.CSS_SELECTOR,
+                        "main section .pv-text-details__left-panel span.text-body-small.inline.t-black--light.break-words, "
+                        "main section .pv-text-details__left-panel div.text-body-small"
+                    )
                 ]
-                
-                location_container = self.driver.find_elements(By.CSS_SELECTOR, "div._8b73bec0._8d9ef486._5f473b7a.e1c05024._7a63c662._42821794")
-                for container in location_container:
-                    try:
-                        location_p = container.find_element(By.CSS_SELECTOR, "p._50d2f93f._6302b07e.aa2681d5.e5a8a44f._80760f21._5e96a778._8c4cb82e.b071448a.a533ef56._1c02a242")
-                        location_text = location_p.text.strip()
-                        if location_text and location_text not in ['·'] and 'Contact info' not in location_text:
-                            profile_data['location'] = location_text
-                            profile_data['fields_extracted'].append('location')
-                            print(f"✓ Found location: {profile_data['location']}")
-                            break
-                    except:
-                        continue
+                for location_text in location_candidates:
+                    if location_text and 'contact info' not in location_text.lower() and 'followers' not in location_text.lower():
+                        profile_data['location'] = location_text
+                        profile_data['fields_extracted'].append('location')
+                        print(f"✓ Found location: {profile_data['location']}")
+                        break
             except Exception as e:
                 print(f"✗ Could not find location: {e}")
             
             # Connections count
             try:
-                connections_selectors = [
-                    "p._50d2f93f._6302b07e.aa2681d5.e5a8a44f._80760f21._5e96a778._8c4cb82e.b071448a._5520be2e._1c02a242",
-                    "span.t-black--light span[aria-hidden='true']",
-                ]
-                
-                for selector in connections_selectors:
-                    try:
-                        connections_elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                        for elem in connections_elements:
-                            text = elem.text.strip()
-                            if 'connection' in text.lower():
-                                profile_data['connections'] = text
-                                profile_data['fields_extracted'].append('connections')
-                                print(f"✓ Found connections: {profile_data['connections']}")
-                                break
-                        if profile_data['connections']:
-                            break
-                    except:
-                        continue
+                all_text = [e.text.strip() for e in self.driver.find_elements(By.CSS_SELECTOR, "main section span, main section a, main section p")]
+                for text in all_text:
+                    lower = text.lower()
+                    if ' connection' in lower or lower.endswith('connections') or lower.endswith('connection'):
+                        profile_data['connections'] = text
+                        profile_data['fields_extracted'].append('connections')
+                        print(f"✓ Found connections: {profile_data['connections']}")
+                        break
             except Exception as e:
                 print(f"✗ Could not find connections: {e}")
             
             # Mutual connections
             try:
-                mutual_selectors = [
-                    "p._50d2f93f._6302b07e._819511f0._9dddadca._4d4b9b10._085c5a25.a3306e30._59ef8e78",
-                    "a._0afd2031._06d74129",
-                ]
-                
-                for selector in mutual_selectors:
-                    try:
-                        mutual_elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                        for elem in mutual_elements:
-                            text = elem.text.strip()
-                            if 'mutual connection' in text.lower():
-                                profile_data['mutual_connections'] = text
-                                profile_data['fields_extracted'].append('mutual_connections')
-                                print(f"✓ Found mutual connections: {profile_data['mutual_connections']}")
-                                break
-                        if profile_data['mutual_connections']:
-                            break
-                    except:
-                        continue
+                for elem in self.driver.find_elements(By.CSS_SELECTOR, "main section span, main section a, main section p"):
+                    text = elem.text.strip()
+                    if 'mutual connection' in text.lower():
+                        profile_data['mutual_connections'] = text
+                        profile_data['fields_extracted'].append('mutual_connections')
+                        print(f"✓ Found mutual connections: {profile_data['mutual_connections']}")
+                        break
             except Exception as e:
                 print(f"✗ Could not find mutual connections: {e}")
             
@@ -300,12 +356,13 @@ class LinkedInBatchScraper:
                     "div.pv-shared-text-with-see-more",
                     "section[data-section='summary'] div.pv-shared-text-with-see-more",
                     "div.display-flex.ph5.pv3 div.full-width",
+                    "section.artdeco-card p[dir='ltr']",
                 ]
                 
                 for selector in about_selectors:
                     try:
                         try:
-                            see_more_button = self.driver.find_element(By.XPATH, "//button[contains(@aria-label, 'more')]")
+                            see_more_button = self.driver.find_element(By.XPATH, "//button[contains(translate(@aria-label, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'more')]")
                             see_more_button.click()
                             time.sleep(1)
                         except:
@@ -390,7 +447,13 @@ class LinkedInBatchScraper:
                 return None
             
             # Get all URLs
-            all_urls = df[url_column].dropna().tolist()
+            raw_urls = [str(u).strip() for u in df[url_column].dropna().tolist()]
+            normalized_urls = [self.normalize_linkedin_profile_url(u) for u in raw_urls]
+            all_urls = list(dict.fromkeys([u for u in normalized_urls if u]))
+
+            if not all_urls:
+                print("\n✗ No valid LinkedIn profile URLs found in input CSV.")
+                return None
             
             # Load existing progress
             existing_df = None
@@ -399,7 +462,17 @@ class LinkedInBatchScraper:
             if resume and os.path.exists(output_csv):
                 try:
                     existing_df = pd.read_csv(output_csv)
-                    scraped_urls = set(existing_df['profile_url'].tolist())
+                    if 'pronouns' in existing_df.columns:
+                        existing_df = existing_df.drop(columns=['pronouns'])
+                        existing_df.to_csv(output_csv, index=False, encoding='utf-8')
+                    if 'profile_url' in existing_df.columns:
+                        scraped_urls = {
+                            self.normalize_linkedin_profile_url(u)
+                            for u in existing_df['profile_url'].dropna().tolist()
+                            if self.normalize_linkedin_profile_url(u)
+                        }
+                    else:
+                        scraped_urls = set()
                     print(f"\n✓ Found existing progress file: {output_csv}")
                     print(f"✓ Already scraped: {len(scraped_urls)} profiles")
                 except Exception as e:
@@ -424,7 +497,8 @@ class LinkedInBatchScraper:
             print(f"📊 Total URLs in input file: {len(all_urls)}")
             print(f"✅ Already scraped: {already_scraped}")
             print(f"⏳ Remaining to scrape: {total_urls}")
-            print(f"📈 Completion: {round((already_scraped/len(all_urls)*100), 2)}%")
+            completion_pct = round((already_scraped / len(all_urls) * 100), 2) if len(all_urls) > 0 else 0
+            print(f"📈 Completion: {completion_pct}%")
             print(f"{'='*70}\n")
             
             if total_urls == 0:
@@ -474,6 +548,8 @@ class LinkedInBatchScraper:
                     
                     # Save progress after each profile
                     temp_df = pd.DataFrame(all_profiles_data)
+                    if 'pronouns' in temp_df.columns:
+                        temp_df = temp_df.drop(columns=['pronouns'])
                     temp_df.to_csv(output_csv, index=False, encoding='utf-8')
                     
                     # Save checkpoint
@@ -522,6 +598,8 @@ class LinkedInBatchScraper:
                     
                     # Save progress even on error
                     temp_df = pd.DataFrame(all_profiles_data)
+                    if 'pronouns' in temp_df.columns:
+                        temp_df = temp_df.drop(columns=['pronouns'])
                     temp_df.to_csv(output_csv, index=False, encoding='utf-8')
                     
                     # Update checkpoint
@@ -539,6 +617,8 @@ class LinkedInBatchScraper:
             
             # Final save
             final_df = pd.DataFrame(all_profiles_data)
+            if 'pronouns' in final_df.columns:
+                final_df = final_df.drop(columns=['pronouns'])
             final_df.to_csv(output_csv, index=False, encoding='utf-8')
             
             # Calculate statistics
@@ -585,7 +665,7 @@ if __name__ == "__main__":
     
     timestamp = datetime.now().strftime("%m-%d-%y-%H")
     
-    INPUT_CSV = f"linkedin_profiles/extracted_profiles_of_tech_recs_04-24-26-20.csv"
+    INPUT_CSV = f"linkedin_profiles/extracted_profiles_of_founders_04-24-26-20.csv"
     OUTPUT_CSV = f"linkedin_profiles/extracted_profiles_keydata_{timestamp}.csv"
     URL_COLUMN = "url"
     
@@ -603,12 +683,17 @@ if __name__ == "__main__":
         file_path = OUTPUT_CSV
         df = pd.read_csv(file_path)
 
+        if "pronouns" in df.columns:
+            df = df.drop(columns=["pronouns"])
+
         if "connection_date" not in df.columns:
             df["connection_date"] = ""
         if "connection_note" not in df.columns:
             df["connection_note"] = ""
         if "connection_status" not in df.columns:
             df["connection_status"] = ""
+        if "university" not in df.columns:
+            df["university"] = ""
 
         df.to_csv(file_path, index=False)
 
@@ -627,6 +712,5 @@ if __name__ == "__main__":
             print(f"\n{'='*70}")
             print("📋 SAMPLE OF EXTRACTED DATA")
             print(f"{'='*70}")
-            display_columns = [col for col in ['name', 'headline', 'current_company', 'location', 'connections', 'status', 'fields_extracted'] if col in df.columns]
+            display_columns = [col for col in ['name', 'headline', 'current_company', 'university', 'location', 'connections', 'status', 'fields_extracted'] if col in df.columns]
             print(df[display_columns].head())
-

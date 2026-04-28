@@ -812,14 +812,14 @@ def main():
 
     MAX_REQUESTS = 200
 
-#     NOTE_TEMPLATE = """Hi {name},
+    NOTE_TEMPLATE = """Hi {name},
 
-# I saw you're hiring for software roles and wanted to reach out.
+I saw you're hiring for software roles and wanted to reach out.
 
-# I'm a Data Engineer with 5 years of experience building scalable data pipelines across cloud and modern data stacks. I'd love to connect and see if my background aligns with your team's needs.
+I'm a Data Engineer with 5 years of experience building scalable data pipelines across cloud and modern data stacks. I'd love to connect and see if my background aligns with your team's needs.
 
-# -Jay  
-# """
+-Jay  
+"""
 
 #     NOTE_TEMPLATE = """Hi Ashika,
 

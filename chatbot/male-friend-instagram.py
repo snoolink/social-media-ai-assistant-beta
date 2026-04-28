@@ -168,13 +168,11 @@ def generate_initial_message(bedrock_client, username):
             modelId=BEDROCK_MODEL_ID,
             system=[{"text": """You write casual, friendly Instagram DM recontinuing conversation lines. 
 Rules:
-- Maximum 1-2 sentences
 - Warm and genuine, not salesy
 - NO placeholders like [name] or [something specific] — the message must be 100% ready to send as-is
 - Do NOT mention their posts, photos, or profile since you haven't seen them
 - Just a friendly, natural excuse to recontinue conversation
-- Can use reasons like i was cooking or having coffeee or running some errands etc.
-- One emoji max
+- Use reasons like i was cooking or having coffeee or running some errands etc.
 - Output ONLY the message, nothing else, no quotes"""}],
             messages=[{
                 "role": "user",
