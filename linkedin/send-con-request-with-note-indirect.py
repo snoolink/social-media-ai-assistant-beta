@@ -852,7 +852,7 @@ def main():
     EMAIL = LINKEDIN_USERNAME
     PASSWORD = LINKEDIN_PASSWORD
 
-    INPUT_CSV = "linkedin_profiles/extracted_profiles_of_tech_recs_04-27-26-16.csv"
+    INPUT_CSV = "linkedin_profiles/extracted_profiles_keydata_04-27-26-18_with_notes.csv"
 
     MAX_REQUESTS = 200
 
