@@ -151,3 +151,7 @@ token.pickle
 *.docx
 *.doc
 *.pdf
+
+customized_resumes/
+instagram-profiles/
+linkedin_profiles/
