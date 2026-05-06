@@ -730,7 +730,7 @@ def main():
     PASSWORD = LINKEDIN_PASSWORD
 
     # ── Point this at the CSV that already has connection_note filled in ──────
-    INPUT_CSV    = "linkedin_profiles/extracted_profiles_of_tech_recs_04-27-26-16_with_notes.csv"
+    INPUT_CSV    = "linkedin_profiles/extracted_profiles_keydata_04-27-26-18_withnotes.csv"
     MAX_REQUESTS = 200
     # ─────────────────────────────────────────────────────────────────────────
 
