@@ -13,13 +13,13 @@ import random
 from datetime import datetime
 
 # ======== CONFIGURATION ========
-CSV_FILE = "instagram-profiles/wanderwithsky_jay.csv"  # Must contain column 'url'
-DAILY_LIMIT = 200  # Maximum unfollows per day
+CSV_FILE = "instagram-profiles/followers.csv"  # Must contain column 'url'
+DAILY_LIMIT = 360  # Maximum unfollows per day
 BREAK_AFTER = 13  # Take a break after this many unfollows
-MIN_BREAK_TIME = 6  # Minimum break time in seconds (1 minute)
-MAX_BREAK_TIME = 270  # Maximum break time in seconds (45 minutes)
+MIN_BREAK_TIME = 6  # Minimum break time in seconds (6 seconds)
+MAX_BREAK_TIME = 27  # Maximum break time in seconds (27 seconds)
 MIN_WAIT_BETWEEN_PROFILES = 0  # Minimum wait between profiles
-MAX_WAIT_BETWEEN_PROFILES = 22  # Maximum wait between profiles
+MAX_WAIT_BETWEEN_PROFILES = 12  # Maximum wait between profiles
 # ===============================
 
 def setup_driver():

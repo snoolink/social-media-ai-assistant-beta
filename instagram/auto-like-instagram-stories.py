@@ -14,9 +14,9 @@ from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
 
 # ======== CONFIGURATION ========
-CSV_FILE = "instagram-profiles/itsaryan_jay.csv"  # Must contain column 'url'
-DAILY_STORY_LIKE_LIMIT = 200  # Maximum story likes per day
-BREAK_AFTER = 15  # Take a break after this many likes
+CSV_FILE = "instagram-profiles/thenatureboy.csv"  # Must contain column 'url'
+DAILY_STORY_LIKE_LIMIT = 400  # Maximum story likes per day
+BREAK_AFTER = 19  # Take a break after this many likes
 MIN_BREAK_TIME = 12  # Minimum break time in seconds (2 minutes)
 MAX_BREAK_TIME = 30 # Maximum break time in seconds (5 minutes)
 MIN_WAIT_BETWEEN_PROFILES = 8  # Minimum wait between profiles (seconds)
