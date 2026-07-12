@@ -14,11 +14,11 @@ import random
 from datetime import datetime
 
 # ======== CONFIGURATION ========
-CSV_FILE = "instagram-profiles/chaddha.csv"
+CSV_FILE = "instagram-profiles/bad.csv"
 # CSV_FILE = "/Users/jay/Downloads/ig_commenters_2026-04-27.csv"
 
-DAILY_FOLLOW_LIMIT = 250
-BREAK_AFTER = 50
+DAILY_FOLLOW_LIMIT = 450
+BREAK_AFTER = 51
 MIN_BREAK_TIME = 33
 MAX_BREAK_TIME = 100
 MIN_WAIT_BETWEEN = 10

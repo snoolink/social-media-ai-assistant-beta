@@ -160,7 +160,7 @@ class LinkedInMessageBot:
         """
         try:
             # Get profile data with defaults
-            full_name = profile_data.get('name', 'there')
+            full_name = profile_data.get('full_name', 'there')
             company_name_full = profile_data.get('about', 'your field')
             headline = profile_data.get('headline', '')
             current_position = profile_data.get('current_position', '')
@@ -597,7 +597,7 @@ def main():
     PASSWORD = "Switch@2025"
     
     # Input CSV file
-    INPUT_CSV = "linkedin_profiles/extracted_profiles_keydata_01-12-26-20.csv" 
+    INPUT_CSV = "producthunt_profiles.csv" 
  
     # Maximum messages to send per session (keep it reasonable - 15-25 per session)
     MAX_MESSAGES = 20
